@@ -281,3 +281,157 @@ def test_admin_login():
     r = requests.post(f"{API}/auth/login", json={"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD}, timeout=30)
     assert r.status_code == 200
     assert r.json()["user"]["role"] == "admin"
+
+
+
+# ---------- NEW: Google Session negative paths ----------
+def test_auth_session_missing_header():
+    r = requests.post(f"{API}/auth/session", timeout=30)
+    assert r.status_code == 400, r.text
+
+
+def test_auth_session_fake_id_returns_401():
+    r = requests.post(f"{API}/auth/session", headers={"X-Session-ID": "fake-invalid-session-id-xyz"}, timeout=30)
+    # Should be 401 (invalid session id per upstream Emergent auth)
+    assert r.status_code == 401, f"expected 401 got {r.status_code}: {r.text}"
+
+
+# ---------- NEW: Admin endpoints ----------
+@pytest.fixture(scope="module")
+def admin_session():
+    s = requests.Session()
+    r = s.post(f"{API}/auth/login", json={"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD}, timeout=30)
+    assert r.status_code == 200, f"Admin login failed: {r.text}"
+    assert r.json()["user"]["role"] == "admin"
+    return s
+
+
+def test_admin_stats_unauthenticated():
+    r = requests.get(f"{API}/admin/stats", timeout=30)
+    assert r.status_code == 401
+
+
+def test_admin_stats_forbidden_for_regular_user(auth_session):
+    r = auth_session.get(f"{API}/admin/stats", timeout=30)
+    assert r.status_code == 403
+
+
+def test_admin_stats_ok_for_admin(admin_session):
+    r = admin_session.get(f"{API}/admin/stats", timeout=30)
+    assert r.status_code == 200
+    data = r.json()
+    for key in ("users", "solar_apps", "loan_apps", "contacts",
+                "solar_pending", "loan_pending", "solar_approved", "loan_approved"):
+        assert key in data, f"missing key {key}"
+        assert isinstance(data[key], int)
+
+
+def test_admin_users_list(admin_session):
+    r = admin_session.get(f"{API}/admin/users", timeout=30)
+    assert r.status_code == 200
+    users = r.json()
+    assert isinstance(users, list) and len(users) >= 2
+    emails = [u["email"] for u in users]
+    assert ADMIN_EMAIL in emails
+    assert TEST_USER_EMAIL in emails
+    for u in users:
+        assert "password_hash" not in u
+
+
+def test_admin_solar_list(admin_session):
+    r = admin_session.get(f"{API}/admin/solar", timeout=30)
+    assert r.status_code == 200
+    assert isinstance(r.json(), list)
+
+
+def test_admin_loan_list(admin_session):
+    r = admin_session.get(f"{API}/admin/loan", timeout=30)
+    assert r.status_code == 200
+    assert isinstance(r.json(), list)
+
+
+def test_admin_contacts_list(admin_session):
+    r = admin_session.get(f"{API}/admin/contacts", timeout=30)
+    assert r.status_code == 200
+    assert isinstance(r.json(), list)
+
+
+def test_admin_update_solar_status_success(admin_session):
+    # Create a solar application first
+    r = requests.post(f"{API}/solar/apply", json=SOLAR_PAYLOAD, timeout=30)
+    ref_no = r.json()["application"]["ref_no"]
+    r2 = admin_session.patch(f"{API}/admin/solar/{ref_no}/status", json={"status": "approved"}, timeout=30)
+    assert r2.status_code == 200, r2.text
+    # Verify persisted
+    r3 = requests.get(f"{API}/status/{ref_no}", timeout=30)
+    assert r3.json()["status"] == "approved"
+
+
+def test_admin_update_loan_status_invalid(admin_session):
+    r = requests.post(f"{API}/loan/apply", json=LOAN_PAYLOAD, timeout=30)
+    ref_no = r.json()["application"]["ref_no"]
+    r2 = admin_session.patch(f"{API}/admin/loan/{ref_no}/status", json={"status": "not_a_status"}, timeout=30)
+    assert r2.status_code == 400
+
+
+def test_admin_update_solar_status_not_found(admin_session):
+    r = admin_session.patch(f"{API}/admin/solar/UNKNOWN-REF/status", json={"status": "approved"}, timeout=30)
+    assert r.status_code == 404
+
+
+def test_admin_create_and_delete_notice(admin_session):
+    payload = {"title_hi": "TEST सूचना", "title_en": "TEST Notice", "type": "info"}
+    r = admin_session.post(f"{API}/admin/notices", json=payload, timeout=30)
+    assert r.status_code == 200, r.text
+    notice = r.json()
+    assert notice["title_en"] == "TEST Notice"
+    notice_id = notice["id"]
+    assert notice_id
+    # Delete
+    r2 = admin_session.delete(f"{API}/admin/notices/{notice_id}", timeout=30)
+    assert r2.status_code == 200
+    assert r2.json().get("ok") is True
+
+
+def test_admin_delete_notice_invalid_id(admin_session):
+    r = admin_session.delete(f"{API}/admin/notices/not-a-valid-oid", timeout=30)
+    assert r.status_code == 400
+
+
+# ---------- NEW: user_id (UUID) end-to-end ----------
+def test_new_user_uuid_flow_end_to_end():
+    s = requests.Session()
+    email = f"test_e2e_{uuid.uuid4().hex[:8]}@example.com"
+    reg = s.post(f"{API}/auth/register", json={
+        "name": "TEST E2E", "email": email, "phone": "9000000001", "password": "Passw0rd!"
+    }, timeout=30)
+    assert reg.status_code == 200
+    user = reg.json()["user"]
+    assert user["id"].startswith("user_"), f"expected UUID user_id, got {user['id']}"
+    # /me
+    me = s.get(f"{API}/auth/me", timeout=30)
+    assert me.status_code == 200 and me.json()["email"] == email
+    # apply solar
+    ap = s.post(f"{API}/solar/apply", json=SOLAR_PAYLOAD, timeout=30)
+    assert ap.status_code == 200
+    ref_no = ap.json()["application"]["ref_no"]
+    assert ap.json()["application"]["user_id"] == user["id"]
+    # my
+    my = s.get(f"{API}/solar/my", timeout=30)
+    assert my.status_code == 200
+    assert any(a["ref_no"] == ref_no for a in my.json())
+
+
+# ---------- NEW: logout clears session_token cookie ----------
+def test_logout_clears_session_token_cookie():
+    s = requests.Session()
+    # Manually set a session_token cookie to simulate google login
+    s.cookies.set("session_token", "dummy-token-value", domain=BASE_URL.replace("https://", "").replace("http://", ""))
+    # Also login normally
+    s.post(f"{API}/auth/login", json={"email": TEST_USER_EMAIL, "password": TEST_USER_PASSWORD}, timeout=30)
+    r = s.post(f"{API}/auth/logout", timeout=30)
+    assert r.status_code == 200
+    # After logout, cookies should be cleared by server response
+    assert not s.cookies.get("access_token")
+    assert not s.cookies.get("refresh_token")
+    assert not s.cookies.get("session_token")

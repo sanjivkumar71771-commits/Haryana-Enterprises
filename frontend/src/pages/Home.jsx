@@ -6,6 +6,7 @@ import { S } from "@/lib/strings";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import Marquee from "react-fast-marquee";
+import SolarCalculator from "@/components/SolarCalculator";
 import {
   FaSolarPanel, FaMoneyBillWave, FaFileSignature, FaSearchLocation, FaTools,
   FaTasks, FaCheckCircle, FaChevronRight, FaChevronDown, FaEnvelope, FaLock,
@@ -257,6 +258,9 @@ const Home = () => {
       <div className="mt-10">
         <NewsMarquee />
       </div>
+
+      {/* ─────────── Solar Savings Calculator ─────────── */}
+      <SolarCalculator />
 
       {/* ─────────── Services ─────────── */}
       <section className="max-w-7xl mx-auto px-4 py-14" data-testid="services-section">

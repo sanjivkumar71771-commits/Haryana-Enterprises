@@ -133,6 +133,11 @@ const Header = () => {
 
           {user && user !== false ? (
             <>
+              {user.role === "admin" && (
+                <NavLink to="/admin" className={({ isActive }) => `subnav-link ${isActive ? "active" : ""}`} data-testid="nav-admin">
+                  <FaTachometerAlt /> Admin
+                </NavLink>
+              )}
               <NavLink to="/dashboard" className={({ isActive }) => `subnav-link ${isActive ? "active" : ""}`} data-testid="nav-dashboard">
                 <FaTachometerAlt /> {t(S.nav.dashboard)}
               </NavLink>

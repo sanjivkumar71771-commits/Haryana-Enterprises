@@ -28,14 +28,9 @@ const Login = () => {
     } finally { setLoading(false); }
   };
 
-  const demoGoogle = async () => {
-    setLoading(true);
-    try {
-      await googleLogin({ email: "user@test.com", name: "Test User", picture: "", google_id: "demo-google-id-123" });
-      toast.success(lang === "hi" ? "गूगल लॉगिन सफल!" : "Google login successful!");
-      nav("/dashboard");
-    } catch { toast.error("Google login failed"); }
-    finally { setLoading(false); }
+  const doGoogle = () => {
+    // Redirects to Emergent Auth → returns to /dashboard with #session_id
+    googleLogin();
   };
 
   return (
@@ -77,8 +72,8 @@ const Login = () => {
           <span className="text-[10px] text-slate-500 uppercase tracking-widest">Or continue with</span>
           <div className="flex-1 h-px bg-white/10"></div>
         </div>
-        <button onClick={demoGoogle} className="btn-ghost w-full justify-center" data-testid="google-login-btn">
-          <FaGoogle className="text-red-400" /> {lang === "hi" ? "Google से लॉगिन (डेमो)" : "Google (Demo)"}
+        <button onClick={doGoogle} className="btn-ghost w-full justify-center" data-testid="google-login-btn">
+          <FaGoogle className="text-red-400" /> {lang === "hi" ? "Google से जारी रखें" : "Continue with Google"}
         </button>
 
         <p className="text-xs text-center mt-5 text-slate-400">

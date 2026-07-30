@@ -24,6 +24,8 @@ import Downloads from "@/pages/Downloads";
 import Notices from "@/pages/Notices";
 import Gallery from "@/pages/Gallery";
 import StatusLookup from "@/pages/StatusLookup";
+import AuthCallback from "@/pages/AuthCallback";
+import AdminPanel from "@/pages/AdminPanel";
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -39,6 +41,40 @@ const Protected = ({ children }) => {
   return children;
 };
 
+/** Router that synchronously detects Emergent Auth session_id in URL hash. */
+function AppRouter() {
+  const location = useLocation();
+  // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
+  if (location.hash?.includes("session_id=")) {
+    return <AuthCallback />;
+  }
+  return (
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/services" element={<Services />} />
+      <Route path="/solar/apply" element={<SolarApply />} />
+      <Route path="/loan/apply" element={<LoanApply />} />
+      <Route path="/gallery" element={<Gallery />} />
+      <Route path="/notices" element={<Notices />} />
+      <Route path="/downloads" element={<Downloads />} />
+      <Route path="/faq" element={<FAQ />} />
+      <Route path="/contact" element={<Contact />} />
+      <Route path="/status" element={<StatusLookup />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
+      <Route path="/admin" element={<Protected><AdminPanel /></Protected>} />
+      <Route path="*" element={
+        <div className="max-w-3xl mx-auto px-4 py-20 text-center">
+          <h1 className="font-display text-6xl font-extrabold text-emerald-400">404</h1>
+          <p className="text-slate-400 mt-3">Page not found</p>
+        </div>
+      } />
+    </Routes>
+  );
+}
+
 function AppInner() {
   useEffect(() => {
     AOS.init({ duration: 700, once: true, offset: 60, easing: "ease-out-cubic" });
@@ -49,32 +85,11 @@ function AppInner() {
         <ScrollToTop />
         <Header />
         <main className="flex-1">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/services" element={<Services />} />
-            <Route path="/solar/apply" element={<SolarApply />} />
-            <Route path="/loan/apply" element={<LoanApply />} />
-            <Route path="/gallery" element={<Gallery />} />
-            <Route path="/notices" element={<Notices />} />
-            <Route path="/downloads" element={<Downloads />} />
-            <Route path="/faq" element={<FAQ />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/status" element={<StatusLookup />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
-            <Route path="*" element={
-              <div className="max-w-3xl mx-auto px-4 py-20 text-center">
-                <h1 className="text-5xl font-bold text-emerald-800">404</h1>
-                <p className="text-slate-600 mt-3">Page not found</p>
-              </div>
-            } />
-          </Routes>
+          <AppRouter />
         </main>
         <Footer />
       </BrowserRouter>
-      <Toaster richColors position="top-right" />
+      <Toaster richColors position="top-right" theme="dark" />
     </div>
   );
 }
