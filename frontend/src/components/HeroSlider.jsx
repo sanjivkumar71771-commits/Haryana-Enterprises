@@ -37,22 +37,22 @@ const HeroSlider = () => {
   return (
     <section className="relative overflow-hidden" data-testid="hero-slider">
       <div className="hero-slide" style={{ backgroundImage: `url(${slide.bg})` }}>
-        <div className="max-w-7xl mx-auto px-4 py-20 md:py-28 text-white">
+        <div className="max-w-7xl mx-auto px-4 py-14 md:py-20 text-white">
           <div className="max-w-2xl" key={idx}>
-            <div className="inline-block bg-orange-500 text-white text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded mb-4" data-aos="fade-right">
-              {t({ hi: "सरकारी अनुमोदित", en: "Govt Approved" })}
+            <div className="inline-block bg-orange-500 text-white text-xs font-bold uppercase tracking-wider px-3 py-1 rounded mb-3">
+              {t({ hi: "★ सरकार अनुमोदित योजना", en: "★ Government Approved Scheme" })}
             </div>
-            <h1 className="text-3xl sm:text-5xl font-bold leading-tight mb-4 drop-shadow" data-aos="fade-up">
+            <h1 className="text-2xl sm:text-4xl font-bold leading-tight mb-3 drop-shadow font-hindi">
               {t(resolve(slide.title, S))}
             </h1>
-            <p className="text-lg opacity-95 mb-8 drop-shadow-sm" data-aos="fade-up" data-aos-delay="150">
+            <p className="text-base opacity-95 mb-6 drop-shadow-sm font-hindi">
               {t(resolve(slide.sub, S))}
             </p>
-            <div className="flex flex-wrap gap-3" data-aos="fade-up" data-aos-delay="300">
-              <Link to={slide.cta} className="btn-orange" data-testid={`hero-apply-btn-${idx}`}>
+            <div className="flex flex-wrap gap-3">
+              <Link to={slide.cta} className="btn-gov-orange" data-testid={`hero-apply-btn-${idx}`}>
                 <i className="fa-solid fa-file-signature"></i> {t(S.hero.apply_now)}
               </Link>
-              <Link to="/services" className="btn-outline !border-white !text-white hover:!bg-white hover:!text-emerald-900" data-testid={`hero-know-btn-${idx}`}>
+              <Link to="/services" className="btn-outline !border-white !text-white !bg-transparent hover:!bg-white hover:!text-emerald-900" data-testid={`hero-know-btn-${idx}`}>
                 {t(S.hero.know_more)} <i className="fa-solid fa-arrow-right"></i>
               </Link>
             </div>

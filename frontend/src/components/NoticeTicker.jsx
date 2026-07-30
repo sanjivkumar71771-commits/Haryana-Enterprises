@@ -12,18 +12,22 @@ const NoticeTicker = () => {
   }, []);
   if (!items.length) return null;
   return (
-    <div className="notice-bar" data-testid="notice-ticker">
-      <div className="max-w-7xl mx-auto px-4 flex items-center gap-3 py-2">
-        <span className="flex items-center gap-2 bg-orange-600 text-white px-3 py-1.5 rounded-md text-sm font-semibold shrink-0">
-          <FaBullhorn /> {lang === "hi" ? "सूचना" : "Notice"}
+    <div className="news-strip" data-testid="notice-ticker">
+      <div className="max-w-7xl mx-auto px-4 flex items-stretch">
+        <span className="news-tag">
+          <FaBullhorn /> {lang === "hi" ? "ताज़ा सूचनाएँ" : "Latest News"}
         </span>
-        <Marquee pauseOnHover gradient={false} speed={45} className="text-sm">
-          {items.map((n, i) => (
-            <span key={n.id || i} className="ticker-item font-hindi">
-              {lang === "hi" ? n.title_hi : n.title_en}
-            </span>
-          ))}
-        </Marquee>
+        <div className="flex-1 flex items-center overflow-hidden">
+          <Marquee pauseOnHover gradient={false} speed={45}>
+            {items.map((n, i) => (
+              <span key={n.id || i} className="news-item font-hindi">
+                {lang === "hi" ? n.title_hi : n.title_en}
+                {n.type === "important" && <span className="new-badge">NEW</span>}
+                <span className="mx-4 text-orange-400">|</span>
+              </span>
+            ))}
+          </Marquee>
+        </div>
       </div>
     </div>
   );

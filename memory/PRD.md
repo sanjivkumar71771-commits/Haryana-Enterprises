@@ -30,6 +30,19 @@ Build a full-stack website + application system for **HARYANA ENTERPRISES** (Kag
 - Authenticated users see all their applications in dashboard with PDF download
 - Public status lookup by ref no.
 
+## Implemented (v1.1 — 30 Jul 2026) — Design overhaul to match Haryana NIC portal
+- Redesigned entire chrome to match https://haryanafood.gov.in / ekharid.haryanafood.gov.in visual language:
+  - Accessibility strip (Skip to content, Screen Reader, Sitemap, font A-/A/A+, dark theme toggle, हिंदी/English, Login/Register)
+  - Emblem header with Ashoka national emblem + brand + toll-free number + PM Surya Ghar tricolor badge
+  - Tricolor accent strips (saffron/white/green)
+  - Sticky green navigation bar with orange bottom border, uppercase links
+  - Red "Latest News" marquee tag with animated NEW badges
+  - Two-column layout: main content + right sidebar (Notice Board, Quick Links, Downloads, Consultation)
+  - Tabbed panel (Latest Updates / Helpline / News/Press)
+  - NIC-style panels with green headers and gradient
+  - Partner logos strip (Digital India / MyGov / India.gov.in / PMIndia)
+  - Tricolor footer band, dark green footer
+
 ## Implemented (v1 — 30 Jul 2026)
 ### Backend endpoints (`/api/*`)
 - Auth: `/auth/register`, `/auth/login`, `/auth/logout`, `/auth/me`, `/auth/google` (demo)

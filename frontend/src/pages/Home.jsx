@@ -1,12 +1,14 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import HeroSlider from "@/components/HeroSlider";
 import NoticeTicker from "@/components/NoticeTicker";
+import api from "@/lib/api";
 import { useI18n } from "@/context/I18nContext";
 import { S } from "@/lib/strings";
 import {
-  FaSolarPanel, FaFileSignature, FaMoneyCheckAlt, FaSearchLocation,
-  FaCogs, FaFileDownload, FaTasks, FaHeadset, FaStar, FaCheckCircle, FaBolt, FaHome
+  FaFileSignature, FaHome, FaSearchLocation, FaCogs, FaMoneyCheckAlt, FaTasks, FaFileDownload, FaHeadset,
+  FaBullhorn, FaPhone, FaUsersCog, FaChevronRight, FaLink, FaSolarPanel, FaBolt, FaAward,
+  FaCalendarAlt, FaFilePdf, FaImages
 } from "react-icons/fa";
 
 const services = [
@@ -21,193 +23,302 @@ const services = [
 ];
 
 const testimonials = [
-  {
-    name: "राजेश कुमार",
-    place: "Sirsa",
-    text_hi: "PM सूर्य घर योजना के तहत 3kW सिस्टम मिला। बिजली बिल शून्य हो गया है!",
-    text_en: "Got a 3kW system under PM Surya Ghar scheme. Electricity bill is now zero!",
-  },
-  {
-    name: "सुनीता देवी",
-    place: "Kagdana",
-    text_hi: "लोन प्रक्रिया बहुत आसान थी। मात्र 5 दिन में मंज़ूरी मिल गयी।",
-    text_en: "The loan process was very smooth. Got approval in just 5 days.",
-  },
-  {
-    name: "Vikram Singh",
-    place: "Bhadra Road",
-    text_hi: "प्रोफेशनल टीम और बेहतरीन सर्विस। पूरी तरह संतुष्ट हूँ।",
-    text_en: "Professional team and excellent service. Completely satisfied.",
-  },
+  { name: "राजेश कुमार", place: "Sirsa", text_hi: "PM सूर्य घर योजना के तहत 3kW सिस्टम मिला। बिजली बिल शून्य हो गया है!", text_en: "Got a 3kW system under PM Surya Ghar scheme. Electricity bill is now zero!" },
+  { name: "सुनीता देवी", place: "Kagdana", text_hi: "लोन प्रक्रिया बहुत आसान थी। मात्र 5 दिन में मंज़ूरी मिल गयी।", text_en: "The loan process was very smooth. Got approval in just 5 days." },
+  { name: "Vikram Singh", place: "Bhadra Road", text_hi: "प्रोफेशनल टीम और बेहतरीन सर्विस। पूरी तरह संतुष्ट हूँ।", text_en: "Professional team and excellent service. Completely satisfied." },
+];
+
+const partners = [
+  { name: "MNRE", src: "https://mnre.gov.in/img/logo/logo.png" },
+  { name: "PM Surya Ghar", src: "https://pmsuryaghar.gov.in/assets/images/logo.png" },
+  { name: "Digital India", src: "https://cdnbbsr.s3waas.gov.in/s3194cf6c2de8e00c05fcf16c498adc7bf/uploads/bfi_thumb/2019052265-qnwxelnvme62ylaoiiujk5b2ccd96e1k1qd6gwgjc8.png" },
+  { name: "MyGov", src: "https://cdnbbsr.s3waas.gov.in/s3194cf6c2de8e00c05fcf16c498adc7bf/uploads/bfi_thumb/2019041050-qnwxebbnj7rxevpp6wdnapwzt3s7tpwicb6u6uvv8o.png" },
+  { name: "India.gov.in", src: "https://cdnbbsr.s3waas.gov.in/s3194cf6c2de8e00c05fcf16c498adc7bf/uploads/bfi_thumb/2019052222-qnwxekq1fk4smzc1o0fwznjlqyhvyoxtplpozmhxig.png" },
+  { name: "PM India", src: "https://cdnbbsr.s3waas.gov.in/s3194cf6c2de8e00c05fcf16c498adc7bf/uploads/bfi_thumb/2019032217-qnwxdsivqj26yoh08o93wunrxecvjrtvlq54lbnqp4.png" },
 ];
 
 const Home = () => {
   const { t, lang } = useI18n();
+  const [tab, setTab] = useState("orders");
+  const [notices, setNotices] = useState([]);
+
+  useEffect(() => {
+    api.get("/notices").then(r => setNotices(r.data)).catch(() => {});
+  }, []);
+
+  const orders = [
+    { d_hi: "PM सूर्य घर योजना में सब्सिडी ₹78,000 तक बढ़ी", d_en: "PM Surya Ghar subsidy increased up to ₹78,000", date: "15 Jan, 2026" },
+    { d_hi: "किसानों के लिए KUSUM योजना के आवेदन प्रारंभ", d_en: "KUSUM scheme applications open for farmers", date: "10 Jan, 2026" },
+    { d_hi: "सोलर पैनल पर 25 वर्ष की परफॉर्मेंस वारंटी", d_en: "25-year performance warranty on solar panels", date: "05 Jan, 2026" },
+    { d_hi: "बिज़नेस लोन पर विशेष 7.5% ब्याज दर की घोषणा", d_en: "Special 7.5% interest rate on business loans announced", date: "01 Jan, 2026" },
+    { d_hi: "रूफटॉप सोलर के लिए DHBVN अनुमोदन प्रक्रिया आसान", d_en: "DHBVN approval simplified for rooftop solar", date: "28 Dec, 2025" },
+  ];
+
+  const helplines = [
+    { label_hi: "PM सूर्य घर हेल्पलाइन", label_en: "PM Surya Ghar Helpline", val: "1800-180-3333" },
+    { label_hi: "MNRE टोल फ्री", label_en: "MNRE Toll Free", val: "1800-180-3333" },
+    { label_hi: "बिजली शिकायत DHBVN", label_en: "DHBVN Electricity Complaint", val: "1912" },
+    { label_hi: "हरियाणा एंटरप्राइजेज", label_en: "Haryana Enterprises", val: "8167862016" },
+    { label_hi: "WhatsApp सहायता", label_en: "WhatsApp Support", val: "8168762016" },
+  ];
+
+  const news = [
+    { hi: "PM सूर्य घर योजना: लक्ष्य 1 करोड़ घर तक पहुँचा", en: "PM Surya Ghar Scheme: Target of 1 crore homes reached", date: "20 Jan, 2026" },
+    { hi: "सोलर लोन की मंज़ूरी अब मात्र 5 दिनों में", en: "Solar loan approval now in just 5 days", date: "18 Jan, 2026" },
+    { hi: "हरियाणा में सोलर पंपों पर 75% सब्सिडी", en: "75% subsidy on solar pumps in Haryana", date: "12 Jan, 2026" },
+  ];
+
+  const quickLinks = [
+    { hi: "PM सूर्य घर पोर्टल", en: "PM Surya Ghar Portal", url: "https://pmsuryaghar.gov.in", external: true },
+    { hi: "MNRE अधिकारिक साइट", en: "MNRE Official Site", url: "https://mnre.gov.in", external: true },
+    { hi: "DHBVN", en: "DHBVN (Dakshin Haryana Bijli)", url: "https://dhbvn.org.in", external: true },
+    { hi: "UHBVN", en: "UHBVN (Uttar Haryana Bijli)", url: "https://uhbvn.org.in", external: true },
+    { hi: "Digital India", en: "Digital India", url: "https://digitalindia.gov.in", external: true },
+    { hi: "MyGov पोर्टल", en: "MyGov Portal", url: "https://mygov.in", external: true },
+    { hi: "हरियाणा सरकार", en: "Government of Haryana", url: "https://haryana.gov.in", external: true },
+    { hi: "आवेदन स्थिति", en: "Application Status", url: "/status", external: false },
+  ];
+
   return (
-    <div data-testid="home-page">
+    <div id="main-content" data-testid="home-page">
       <HeroSlider />
       <NoticeTicker />
 
-      {/* Quick Services */}
-      <section className="py-14 bg-white" data-testid="quick-services-section">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="mb-10" data-aos="fade-up">
-            <h2 className="section-title">{t(S.services.title)}</h2>
-            <p className="text-slate-600 mt-3 max-w-2xl">{t(S.services.sub)}</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {services.map((s, i) => {
-              const Icon = s.icon;
-              return (
-                <Link key={s.key} to={s.to} className="service-card group" data-aos="fade-up" data-aos-delay={i * 60} data-testid={`quick-service-${s.key}`}>
-                  <div className="icon-circle"><Icon /></div>
-                  <h3 className="text-lg font-semibold text-emerald-900 mb-1">{t(S.services[s.key])}</h3>
-                  <p className="text-sm text-slate-600 mb-3">{t(S.services[`${s.key}_desc`])}</p>
-                  <span className="text-orange-600 font-semibold text-sm inline-flex items-center gap-1 group-hover:gap-2 transition-all">
-                    {t(S.common.read_more)} <i className="fa-solid fa-arrow-right"></i>
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Stats strip */}
-      <section className="py-10 bg-gradient-to-r from-emerald-800 to-emerald-700 text-white" data-testid="stats-strip">
-        <div className="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-          {[
-            { n: "500+", l_hi: "इंस्टॉलेशन पूरे", l_en: "Installations Completed" },
-            { n: "₹2 Cr+", l_hi: "सब्सिडी दिलवाई", l_en: "Subsidy Facilitated" },
-            { n: "7.5%", l_hi: "लोन ब्याज दर से", l_en: "Loan Interest From" },
-            { n: "5+", l_hi: "वर्षों का अनुभव", l_en: "Years of Experience" },
-          ].map((s, i) => (
-            <div key={i} data-aos="zoom-in" data-aos-delay={i * 80}>
-              <div className="text-3xl md:text-4xl font-extrabold text-orange-300">{s.n}</div>
-              <div className="text-sm opacity-90 mt-1">{lang === "hi" ? s.l_hi : s.l_en}</div>
+      {/* ────── Main content grid: (left 2/3) + (right sidebar) ────── */}
+      <section className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* LEFT COLUMN */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Quick Services grid */}
+          <div className="gov-panel" data-testid="quick-services-panel">
+            <div className="gov-panel-header">
+              <FaCogs /> {t(S.services.title)}
             </div>
-          ))}
-        </div>
-      </section>
+            <div className="gov-panel-body">
+              <p className="text-sm text-slate-600 mb-4">{t(S.services.sub)}</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {services.map((s) => {
+                  const Icon = s.icon;
+                  return (
+                    <Link key={s.key} to={s.to} className="svc-card" data-testid={`quick-service-${s.key}`}>
+                      <div className="svc-icon"><Icon /></div>
+                      <div className="text-sm font-semibold text-emerald-900 leading-tight">{t(S.services[s.key])}</div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
 
-      {/* Latest Updates */}
-      <section className="py-14" data-testid="latest-updates-section">
-        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2" data-aos="fade-right">
-            <h2 className="section-title">{t(S.common.latest_updates)}</h2>
-            <div className="mt-6 space-y-3">
-              {[
-                { d: "15 Jan", hi: "PM सूर्य घर योजना में सब्सिडी ₹78,000 तक बढ़ी", en: "PM Surya Ghar subsidy increased up to ₹78,000" },
-                { d: "10 Jan", hi: "किसानों के लिए KUSUM योजना के आवेदन प्रारंभ", en: "KUSUM scheme applications open for farmers" },
-                { d: "05 Jan", hi: "सोलर पैनल पर 25 वर्ष की परफॉर्मेंस वारंटी", en: "25-year performance warranty on solar panels" },
-                { d: "01 Jan", hi: "बिज़नेस लोन पर विशेष 7.5% ब्याज दर", en: "Special 7.5% interest rate on business loans" },
-              ].map((u, i) => (
-                <div key={i} className="flex gap-4 p-4 border border-slate-200 rounded-lg hover:border-emerald-500 hover:shadow-md transition bg-white">
-                  <div className="shrink-0 w-16 h-16 rounded bg-emerald-50 text-emerald-800 flex flex-col items-center justify-center font-bold">
-                    <span className="text-lg">{u.d.split(" ")[0]}</span>
-                    <span className="text-xs">{u.d.split(" ")[1]}</span>
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-semibold text-emerald-900">{lang === "hi" ? u.hi : u.en}</div>
-                    <div className="text-xs text-slate-500 mt-1"><FaBolt className="inline text-orange-500" /> {t(S.common.important)}</div>
-                  </div>
+          {/* About Section */}
+          <div className="gov-panel" data-testid="about-brief-panel">
+            <div className="gov-panel-header"><FaAward /> {lang === "hi" ? "हमारे बारे में" : "About Us"}</div>
+            <div className="gov-panel-body">
+              <div className="grid md:grid-cols-3 gap-4">
+                <img src="https://images.unsplash.com/photo-1609252509027-3928a66302fd?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Njd8MHwxfHNlYXJjaHwyfHxydXJhbCUyMGluZGlhJTIwZmFybWVyJTIwd29ya2luZ3xlbnwwfHx8fDE3ODUzODc0NDV8MA&ixlib=rb-4.1.0&q=85" alt="rural" className="rounded w-full h-32 md:h-full object-cover" />
+                <div className="md:col-span-2 text-sm text-slate-700 leading-relaxed">
+                  <p>
+                    <b className="text-emerald-800">{t(S.brand)}</b> {lang === "hi"
+                      ? "सिरसा जिले में स्थित एक विश्वसनीय संस्था है जो PM सूर्य घर मुफ्त बिजली योजना, रूफटॉप सोलर स्थापना, KUSUM योजना, और वित्तीय सेवाओं में विशेषज्ञ है।"
+                      : "is a trusted organisation in Sirsa district specialising in PM Surya Ghar Free Electricity Scheme, Rooftop Solar installation, KUSUM scheme, and financial services."}
+                  </p>
+                  <ul className="mt-3 gov-list -mx-4">
+                    <li>{lang === "hi" ? "MNRE अनुमोदित सोलर वेंडर" : "MNRE-approved solar vendor"}</li>
+                    <li>{lang === "hi" ? "500+ सफल सोलर इंस्टॉलेशन" : "500+ successful solar installations"}</li>
+                    <li>{lang === "hi" ? "₹2 करोड़+ की सब्सिडी दिलवाई" : "₹2 crore+ subsidy facilitated"}</li>
+                    <li>{lang === "hi" ? "अधिकृत लोन पार्टनर, 7.5% ब्याज दर से" : "Authorised loan partner from 7.5% interest"}</li>
+                  </ul>
+                  <Link to="/about" className="btn-gov mt-3" data-testid="about-read-more"><FaChevronRight /> {lang === "hi" ? "और पढ़ें" : "Read More"}</Link>
                 </div>
-              ))}
+              </div>
             </div>
           </div>
 
-          {/* Download forms */}
-          <div data-aos="fade-left">
-            <h2 className="section-title">{t(S.common.downloadForms)}</h2>
-            <div className="mt-6 bg-white border border-slate-200 rounded-lg divide-y">
-              {[
-                { hi: "PM सूर्य घर आवेदन फॉर्म", en: "PM Surya Ghar Application Form", s: "PDF · 250 KB" },
-                { hi: "सोलर सब्सिडी गाइडलाइन", en: "Solar Subsidy Guidelines", s: "PDF · 480 KB" },
-                { hi: "लोन आवेदन चेकलिस्ट", en: "Loan Application Checklist", s: "PDF · 180 KB" },
-                { hi: "रूफटॉप सोलर ब्रोशर", en: "Rooftop Solar Brochure", s: "PDF · 1.2 MB" },
-              ].map((d, i) => (
-                <Link to="/downloads" key={i} className="flex items-center justify-between px-4 py-3 hover:bg-emerald-50 transition" data-testid={`home-download-${i}`}>
-                  <div>
-                    <div className="text-sm font-semibold text-emerald-900">{lang === "hi" ? d.hi : d.en}</div>
-                    <div className="text-xs text-slate-500">{d.s}</div>
-                  </div>
-                  <FaFileDownload className="text-orange-600 text-xl" />
-                </Link>
-              ))}
+          {/* Tabbed section: Latest Orders / Helpline / News */}
+          <div className="gov-panel" data-testid="tabbed-info-panel">
+            <div className="gov-tabs" role="tablist">
+              <div className={`gov-tab ${tab === "orders" ? "active" : ""}`} onClick={() => setTab("orders")} data-testid="tab-orders">
+                <FaFilePdf className="inline mr-1" /> {lang === "hi" ? "ताज़ा आदेश / अपडेट" : "Latest Updates"}
+              </div>
+              <div className={`gov-tab ${tab === "helpline" ? "active" : ""}`} onClick={() => setTab("helpline")} data-testid="tab-helpline">
+                <FaPhone className="inline mr-1" /> {lang === "hi" ? "हेल्पलाइन" : "Helpline"}
+              </div>
+              <div className={`gov-tab ${tab === "news" ? "active" : ""}`} onClick={() => setTab("news")} data-testid="tab-news">
+                <FaBullhorn className="inline mr-1" /> {lang === "hi" ? "समाचार" : "News/Press"}
+              </div>
+            </div>
+            <div className="p-2">
+              {tab === "orders" && (
+                <ul className="gov-list" data-testid="orders-list">
+                  {orders.map((o, i) => (
+                    <li key={i} className="flex items-start justify-between gap-3">
+                      <a href="#" className="flex-1">{lang === "hi" ? o.d_hi : o.d_en}</a>
+                      <span className="text-xs text-slate-500 whitespace-nowrap"><FaCalendarAlt className="inline mr-1 text-orange-500" />{o.date}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {tab === "helpline" && (
+                <ul className="gov-list" data-testid="helpline-list">
+                  {helplines.map((h, i) => (
+                    <li key={i} className="flex items-center justify-between gap-3">
+                      <span>{lang === "hi" ? h.label_hi : h.label_en}</span>
+                      <a href={`tel:${h.val}`} className="text-emerald-700 font-bold font-mono"><FaPhone className="inline mr-1 text-orange-500" />{h.val}</a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {tab === "news" && (
+                <ul className="gov-list" data-testid="news-list">
+                  {news.map((n, i) => (
+                    <li key={i} className="flex items-start justify-between gap-3">
+                      <a href="#" className="flex-1">{lang === "hi" ? n.hi : n.en}</a>
+                      <span className="text-xs text-slate-500 whitespace-nowrap">{n.date}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* Why choose */}
-      <section className="py-14 bg-emerald-50/60" data-testid="why-choose-section">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="mb-10 max-w-2xl" data-aos="fade-up">
-            <h2 className="section-title">{t({ hi: "हमें क्यों चुनें?", en: "Why Choose Us?" })}</h2>
-            <p className="text-slate-600 mt-3">{t({ hi: "अनुभव, विश्वास और सरकारी अनुमोदित सेवाओं का संगम।", en: "Experience, trust and government-approved services." })}</p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6">
+          {/* Stats strip */}
+          <div className="bg-gradient-to-r from-emerald-800 to-emerald-700 text-white rounded p-5 grid grid-cols-2 md:grid-cols-4 gap-4 text-center" data-testid="stats-strip">
             {[
-              { icon: FaCheckCircle, hi: "सरकार-अनुमोदित", en: "Govt-Approved", desc_hi: "MNRE पंजीकृत वेंडर और अधिकृत लोन पार्टनर।", desc_en: "MNRE-registered vendor and authorised loan partner." },
-              { icon: FaSolarPanel, hi: "गुणवत्तापूर्ण उपकरण", en: "Quality Equipment", desc_hi: "Tier-1 पैनल और 25 वर्ष की वारंटी।", desc_en: "Tier-1 panels with 25-year warranty." },
-              { icon: FaHeadset, hi: "24x7 सहायता", en: "24x7 Support", desc_hi: "समर्पित ग्राहक सहायता टीम।", desc_en: "Dedicated customer support team." },
-            ].map((c, i) => {
-              const Icon = c.icon;
-              return (
-                <div key={i} className="bg-white border border-slate-200 rounded-lg p-6" data-aos="zoom-in" data-aos-delay={i * 100}>
-                  <div className="icon-circle text-orange-600"><Icon /></div>
-                  <h3 className="font-semibold text-emerald-900 text-lg mb-1">{lang === "hi" ? c.hi : c.en}</h3>
-                  <p className="text-sm text-slate-600">{lang === "hi" ? c.desc_hi : c.desc_en}</p>
-                </div>
-              );
-            })}
+              { n: "500+", l_hi: "इंस्टॉलेशन", l_en: "Installations" },
+              { n: "₹2 Cr+", l_hi: "सब्सिडी दिलवाई", l_en: "Subsidy Given" },
+              { n: "7.5%", l_hi: "से लोन दर", l_en: "Loan Rate From" },
+              { n: "5+", l_hi: "वर्षों का अनुभव", l_en: "Years Experience" },
+            ].map((s, i) => (
+              <div key={i}>
+                <div className="text-2xl md:text-3xl font-extrabold text-orange-300">{s.n}</div>
+                <div className="text-xs md:text-sm opacity-90 mt-1">{lang === "hi" ? s.l_hi : s.l_en}</div>
+              </div>
+            ))}
           </div>
-        </div>
-      </section>
 
-      {/* Testimonials */}
-      <section className="py-14" data-testid="testimonials-section">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="mb-10" data-aos="fade-up">
-            <h2 className="section-title">{t(S.common.testimonials)}</h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((tm, i) => (
-              <div key={i} className="bg-white border border-slate-200 rounded-lg p-6" data-aos="fade-up" data-aos-delay={i * 80} data-testid={`testimonial-${i}`}>
-                <div className="flex text-orange-500 mb-3">
-                  {[...Array(5)].map((_, s) => <FaStar key={s} />)}
-                </div>
-                <p className="text-slate-700 italic mb-4 font-hindi">"{lang === "hi" ? tm.text_hi : tm.text_en}"</p>
-                <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
-                  <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">{tm.name[0]}</div>
-                  <div>
-                    <div className="font-semibold text-emerald-900">{tm.name}</div>
-                    <div className="text-xs text-slate-500">{tm.place}</div>
+          {/* Testimonials */}
+          <div className="gov-panel" data-testid="testimonials-panel">
+            <div className="gov-panel-header"><FaUsersCog /> {lang === "hi" ? "ग्राहकों की प्रतिक्रिया" : "Customer Testimonials"}</div>
+            <div className="gov-panel-body grid md:grid-cols-3 gap-4">
+              {testimonials.map((tm, i) => (
+                <div key={i} className="border border-slate-200 rounded p-3 bg-slate-50" data-testid={`testimonial-${i}`}>
+                  <div className="text-orange-500 mb-1">{"★★★★★"}</div>
+                  <p className="text-xs text-slate-700 italic mb-2 font-hindi">"{lang === "hi" ? tm.text_hi : tm.text_en}"</p>
+                  <div className="flex items-center gap-2 border-t border-slate-200 pt-2">
+                    <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs">{tm.name[0]}</div>
+                    <div className="text-xs">
+                      <div className="font-semibold text-emerald-900">{tm.name}</div>
+                      <div className="text-slate-500">{tm.place}</div>
+                    </div>
                   </div>
                 </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT SIDEBAR */}
+        <aside className="space-y-6" data-testid="right-sidebar">
+          {/* Notice Board */}
+          <div className="gov-panel">
+            <div className="gov-panel-header"><FaBullhorn className="text-red-600" /> {lang === "hi" ? "सूचना बोर्ड" : "Notice Board"}</div>
+            <div className="p-0 max-h-64 overflow-y-auto">
+              <ul className="gov-list" data-testid="notice-board-list">
+                {notices.slice(0, 6).map((n, i) => (
+                  <li key={n.id || i}>
+                    <div className="flex items-start gap-2">
+                      {n.type === "important" && <span className="new-badge shrink-0 mt-1">NEW</span>}
+                      <span className="font-hindi">{lang === "hi" ? n.title_hi : n.title_en}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Quick Links */}
+          <div className="gov-panel">
+            <div className="gov-panel-header"><FaLink /> {lang === "hi" ? "उपयोगी लिंक" : "Quick Links"}</div>
+            <ul className="quick-links" data-testid="quick-links-list">
+              {quickLinks.map((q, i) => (
+                <li key={i}>
+                  {q.external ? (
+                    <a href={q.url} target="_blank" rel="noreferrer">{lang === "hi" ? q.hi : q.en}</a>
+                  ) : (
+                    <Link to={q.url}>{lang === "hi" ? q.hi : q.en}</Link>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Downloads mini */}
+          <div className="gov-panel">
+            <div className="gov-panel-header"><FaFileDownload /> {lang === "hi" ? "डाउनलोड करें" : "Downloads"}</div>
+            <ul className="gov-list" data-testid="sidebar-downloads-list">
+              {[
+                { hi: "PM सूर्य घर आवेदन फॉर्म", en: "PM Surya Ghar Application Form" },
+                { hi: "सोलर सब्सिडी गाइडलाइन", en: "Solar Subsidy Guidelines" },
+                { hi: "लोन आवेदन चेकलिस्ट", en: "Loan Application Checklist" },
+                { hi: "रूफटॉप सोलर ब्रोशर", en: "Rooftop Solar Brochure" },
+              ].map((d, i) => (
+                <li key={i}><Link to="/downloads">{lang === "hi" ? d.hi : d.en} <FaFilePdf className="inline text-red-500 ml-1" /></Link></li>
+              ))}
+            </ul>
+            <div className="p-2 border-t border-slate-200">
+              <Link to="/downloads" className="btn-gov-orange w-full justify-center text-xs" data-testid="view-all-downloads-btn">
+                <FaFileDownload /> {lang === "hi" ? "सभी डाउनलोड देखें" : "View All Downloads"}
+              </Link>
+            </div>
+          </div>
+
+          {/* Contact card */}
+          <div className="gov-panel bg-gradient-to-br from-orange-50 to-white">
+            <div className="gov-panel-header"><FaHeadset /> {lang === "hi" ? "मुफ्त परामर्श" : "Free Consultation"}</div>
+            <div className="p-4 text-center">
+              <div className="text-xs text-slate-500 mb-2">{lang === "hi" ? "अभी कॉल करें, हमारी टीम आपकी सहायता करेगी" : "Call now, our team will assist you"}</div>
+              <a href="tel:8167862016" className="text-2xl font-extrabold text-emerald-800 block mb-1">
+                <FaPhone className="inline text-orange-600 mr-1 text-lg" /> 8167862016
+              </a>
+              <a href="https://wa.me/918168762016" target="_blank" rel="noreferrer" className="btn-gov-orange w-full justify-center mt-2 text-sm" data-testid="sidebar-whatsapp-btn">
+                {lang === "hi" ? "WhatsApp पर संदेश करें" : "Message on WhatsApp"}
+              </a>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      {/* Photo Gallery preview */}
+      <section className="max-w-7xl mx-auto px-4 pb-8" data-testid="gallery-preview-section">
+        <div className="gov-panel">
+          <div className="gov-panel-header flex items-center justify-between !flex">
+            <span className="flex items-center gap-2"><FaImages /> {lang === "hi" ? "फ़ोटो गैलरी" : "Photo Gallery"}</span>
+            <Link to="/gallery" className="text-xs text-emerald-700 hover:text-orange-600 normal-case tracking-normal" data-testid="view-all-gallery-btn">
+              {lang === "hi" ? "सभी देखें »" : "View All »"}
+            </Link>
+          </div>
+          <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              "https://images.unsplash.com/photo-1655300256335-beef51a914fe?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTB8MHwxfHNlYXJjaHw0fHxyb29mdG9wJTIwc29sYXIlMjBwYW5lbHMlMjBob21lfGVufDB8fHx8MTc4NTM4NzQzNHww&ixlib=rb-4.1.0&q=85",
+              "https://images.unsplash.com/photo-1660330589257-813305a4a383?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTB8MHwxfHNlYXJjaHwzfHxyb29mdG9wJTIwc29sYXIlMjBwYW5lbHMlMjBob21lfGVufDB8fHx8MTc4NTM4NzQzNHww&ixlib=rb-4.1.0&q=85",
+              "https://images.unsplash.com/photo-1521791136064-7986c2920216?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Njd8MHwxfHNlYXJjaHwyfHxidXNpbmVzcyUyMGxvYW4lMjBwYXBlciUyMGhhbmRzaGFrZXxlbnwwfHx8fDE3ODUzODc0MzR8MA&ixlib=rb-4.1.0&q=85",
+              "https://images.unsplash.com/photo-1609252509027-3928a66302fd?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Njd8MHwxfHNlYXJjaHwyfHxydXJhbCUyMGluZGlhJTIwZmFybWVyJTIwd29ya2luZ3xlbnwwfHx8fDE3ODUzODc0NDV8MA&ixlib=rb-4.1.0&q=85",
+            ].map((src, i) => (
+              <div key={i} className="aspect-video rounded overflow-hidden border border-slate-200 group cursor-pointer" data-testid={`gallery-preview-${i}`}>
+                <img src={src} alt={`Gallery ${i}`} className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-12 bg-gradient-to-r from-orange-600 to-orange-500 text-white" data-testid="cta-section">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div>
-            <h3 className="text-2xl md:text-3xl font-bold">{t({ hi: "अभी सोलर पर स्विच करें और बचाएँ हर महीने!", en: "Switch to Solar Now and Save Every Month!" })}</h3>
-            <p className="opacity-95 mt-1">{t({ hi: "मुफ्त परामर्श के लिए कॉल करें – 8167862016", en: "Call for free consultation – 8167862016" })}</p>
-          </div>
-          <div className="flex gap-3">
-            <Link to="/solar/apply" className="bg-white text-orange-700 font-semibold px-5 py-2.5 rounded hover:bg-orange-50 transition" data-testid="cta-apply-btn">
-              {t(S.hero.apply_now)}
-            </Link>
-            <a href="tel:8167862016" className="border border-white/70 px-5 py-2.5 rounded hover:bg-white/10 transition" data-testid="cta-call-btn">
-              <i className="fa-solid fa-phone"></i> Call Now
-            </a>
-          </div>
+      {/* Partner logos strip */}
+      <div className="partner-strip" data-testid="partner-strip">
+        <div className="max-w-7xl mx-auto px-4 flex flex-wrap items-center justify-around gap-8">
+          {partners.map((p, i) => (
+            <img key={i} src={p.src} alt={p.name} title={p.name} className="partner-logo" data-testid={`partner-${i}`} onError={(e) => { e.target.style.display = "none"; }} />
+          ))}
         </div>
-      </section>
+      </div>
     </div>
   );
 };
