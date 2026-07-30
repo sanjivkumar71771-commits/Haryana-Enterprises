@@ -1,0 +1,96 @@
+{
+  "theme_strategy": {
+    "mode": "light",
+    "rationale": "Government service portals require a high level of trust, accessibility, and readability. A light theme with solid structured layout works best, emulating the official ekharid.haryanafood.gov.in portal."
+  },
+  "typography": {
+    "font_family": "Poppins, sans-serif",
+    "headings": {
+      "strategy": "Bold, clear, authoritative. Use tracking-tight for large headings.",
+      "h1": "text-4xl sm:text-5xl font-bold text-gray-900",
+      "h2": "text-2xl sm:text-3xl font-bold text-gray-800",
+      "h3": "text-xl sm:text-2xl font-semibold text-gray-800"
+    },
+    "body": {
+      "strategy": "Readable, accessible, high contrast.",
+      "default": "text-base text-gray-700 leading-relaxed",
+      "small": "text-sm text-gray-600"
+    }
+  },
+  "colors": {
+    "primary": "#138808",
+    "primary_foreground": "#FFFFFF",
+    "secondary": "#ED6C02",
+    "secondary_foreground": "#FFFFFF",
+    "background": "#F8FAFC",
+    "foreground": "#0F172A",
+    "card": "#FFFFFF",
+    "border": "#E2E8F0",
+    "notice_board_bg": "#FFF3E0",
+    "top_bar_bg": "#1A5319",
+    "instructions": "Update the root CSS variables in index.css to match these colors using HSL equivalents. Primary: HSL(115 91% 28%), Secondary: HSL(27 98% 47%)."
+  },
+  "visual_enhancers": {
+    "shadows": "Subtle shadows for cards (`shadow-sm`, `shadow-md`). Avoid excessive glowing effects to maintain a professional government portal look.",
+    "borders": "1px solid borders (`border-slate-200` or `border-border`) on most containers to clearly separate content areas. Use top border accents on service cards (e.g., `border-t-4 border-primary`).",
+    "radius": "rounded-md or rounded-lg for a modern yet formal look."
+  },
+  "motion": {
+    "strategy": "AOS animations (fade-up, zoom-in) for scrolling sections. Fast, subtle micro-interactions on hover (e.g., `-translate-y-1`, `shadow-md`).",
+    "marquee": "Continuous slow scrolling for the Notice Board/Updates section."
+  },
+  "layouts": {
+    "general": "Centered containers (`max-w-7xl mx-auto`), clear distinct sections with generous padding (`py-12` or `py-16`).",
+    "top_bar": "Flex layout, small text, dark green background. Contains contact info (Email, Phone) on left, Login/Register buttons and Language toggle on right.",
+    "navbar": "Sticky, white background, flex-between. Use dropdowns for multi-level items (e.g., Services -> Solar, Loan).",
+    "hero": "Full width image slider with a dark gradient overlay (`bg-black/40`). Overlay text with primary and secondary CTA buttons.",
+    "notice_board": "Scrolling Marquee with an orange or distinct background. Highlight 'Latest Updates' or 'Important Notices'.",
+    "quick_services": "CSS Grid `grid-cols-1 md:grid-cols-2 lg:grid-cols-4`. Cards should have distinct icons and provide clear pathways to forms."
+  },
+  "component_instructions": {
+    "icons": "Use 'react-icons/fa' (Font Awesome) exclusively as requested. Run `yarn add react-icons`.",
+    "marquee": "Use 'react-fast-marquee' for the scrolling notice board. Run `yarn add react-fast-marquee`.",
+    "aos": "Use 'aos' package. Run `yarn add aos`. Initialize it in App.jsx. Add `data-aos='fade-up'` etc. to elements.",
+    "cards": "Use custom HTML/Tailwind for main landing page cards (Quick Services) for easier AOS integration.",
+    "forms_and_tables": "Use Shadcn components for Solar Registration, Loan Application, User Dashboard, etc."
+  },
+  "image_urls": [
+    {
+      "url": "https://images.unsplash.com/photo-1655300256335-beef51a914fe?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTB8MHwxfHNlYXJjaHw0fHxyb29mdG9wJTIwc29sYXIlMjBwYW5lbHMlMjBob21lfGVufDB8fHx8MTc4NTM4NzQzNHww&ixlib=rb-4.1.0&q=85",
+      "category": "hero_slider",
+      "description": "House with solar panels for PM Surya Ghar/Rooftop solar slides."
+    },
+    {
+      "url": "https://images.unsplash.com/photo-1521791136064-7986c2920216?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Njd8MHwxfHNlYXJjaHwyfHxidXNpbmVzcyUyMGxvYW4lMjBwYXBlciUyMGhhbmRzaGFrZXxlbnwwfHx8fDE3ODUzODc0MzR8MA&ixlib=rb-4.1.0&q=85",
+      "category": "hero_slider",
+      "description": "Business loan handshake for Loan module promotion."
+    },
+    {
+      "url": "https://images.unsplash.com/photo-1609252509027-3928a66302fd?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Njd8MHwxfHNlYXJjaHwyfHxydXJhbCUyMGluZGlhJTIwZmFybWVyJTIwd29ya2luZ3xlbnwwfHx8fDE3ODUzODc0NDV8MA&ixlib=rb-4.1.0&q=85",
+      "category": "about_us",
+      "description": "Rural farmer representing local context in Sirsa, Haryana."
+    },
+    {
+      "url": "https://images.unsplash.com/photo-1660330589257-813305a4a383?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTB8MHwxfHNlYXJjaHwzfHxyb29mdG9wJTIwc29sYXIlMjBwYW5lbHMlMjBob21lfGVufDB8fHx8MTc4NTM4NzQzNHww&ixlib=rb-4.1.0&q=85",
+      "category": "services",
+      "description": "Man installing solar panels on a roof for Installation Request section."
+    }
+  ],
+  "accessibility": {
+    "contrast": "Maintain WCAG AA compliance. High contrast text on buttons and backgrounds.",
+    "bilingual": "Design UI to comfortably handle longer text strings in Hindi.",
+    "testing": "All interactive and key informational elements MUST include a `data-testid` attribute to facilitate robust automated testing."
+  },
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "Prioritize using pre-existing shadcn components from src/components/ui.",
+    "NEVER center align the main App container or body. Left-align text naturally.",
+    "Create depth with borders and subtle shadows rather than flat generic layouts.",
+    "NEVER use a fully transparent background for headers/navs if content scrolls beneath. Use white or solid colors.",
+    "All interactive elements MUST include `data-testid` attributes.",
+    "DO NOT use placeholder text or mock URLs for images. Use the provided image URLs.",
+    "DO NOT use AI emoji characters. Strictly use react-icons/fa (FontAwesome).",
+    "Add `transition-all duration-300` carefully; avoid overriding necessary transform animations.",
+    "Emulate the professional structure of the eKharid portal: Top Bar, Navbar, Hero, Marquee, Grid content.",
+    "Ensure Poppins font is loaded via Google Fonts."
+  ]
+}
