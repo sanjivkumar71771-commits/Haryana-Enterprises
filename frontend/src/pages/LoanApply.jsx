@@ -4,6 +4,7 @@ import api from "@/lib/api";
 import { useI18n } from "@/context/I18nContext";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+import DocumentUploader from "@/components/DocumentUploader";
 import { FaMoneyCheckAlt } from "react-icons/fa";
 
 const LoanApply = () => {
@@ -96,6 +97,14 @@ const LoanApply = () => {
           <div><label className="label">{t({ hi: "आधार", en: "Aadhaar" })} {t({ hi: "(वैकल्पिक)", en: "(optional)" })}</label><input className="input" value={f.aadhaar_number} onChange={set("aadhaar_number")} data-testid="loan-aadhaar-input" /></div>
           <div className="md:col-span-2"><label className="label">{t({ hi: "अतिरिक्त टिप्पणी", en: "Notes" })}</label><textarea rows="3" className="input" value={f.notes} onChange={set("notes")} data-testid="loan-notes-input" /></div>
         </div>
+
+        {user && user !== false && (
+          <div className="pt-4 border-t border-white/5">
+            <label className="label">{t({ hi: "KYC दस्तावेज़ (वैकल्पिक)", en: "KYC Documents (optional)" })}</label>
+            <p className="text-xs text-slate-500 mb-3">{t({ hi: "आधार, PAN, बैंक स्टेटमेंट, आय प्रमाण।", en: "Aadhaar, PAN, bank statement, income proof." })}</p>
+            <DocumentUploader />
+          </div>
+        )}
 
         {emi > 0 && (
           <div className="glass p-4 flex items-center justify-between border-emerald-500/30 !bg-emerald-500/5" data-testid="emi-preview">

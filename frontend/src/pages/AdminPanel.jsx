@@ -6,8 +6,9 @@ import { useI18n } from "@/context/I18nContext";
 import { toast } from "sonner";
 import {
   FaChartLine, FaUsers, FaSolarPanel, FaMoneyBillWave, FaEnvelope, FaBullhorn,
-  FaTrash, FaPlus, FaFilePdf, FaCheckCircle, FaClock, FaTimesCircle, FaEye
+  FaTrash, FaPlus, FaFilePdf, FaCheckCircle, FaClock, FaTimesCircle, FaEye, FaChartPie
 } from "react-icons/fa";
+import AdminAnalytics from "@/components/AdminAnalytics";
 
 const STATUS_OPTS = ["submitted", "under_review", "approved", "rejected"];
 
@@ -83,6 +84,7 @@ const AdminPanel = () => {
 
   const tabs = [
     { id: "overview", label: lang === "hi" ? "अवलोकन" : "Overview", icon: FaChartLine },
+    { id: "analytics", label: lang === "hi" ? "विश्लेषण" : "Analytics", icon: FaChartPie },
     { id: "users", label: lang === "hi" ? "यूज़र्स" : "Users", icon: FaUsers },
     { id: "solar", label: lang === "hi" ? "सोलर" : "Solar", icon: FaSolarPanel },
     { id: "loan", label: lang === "hi" ? "लोन" : "Loan", icon: FaMoneyBillWave },
@@ -155,6 +157,9 @@ const AdminPanel = () => {
           </div>
         </div>
       )}
+
+      {/* Analytics tab */}
+      {tab === "analytics" && <AdminAnalytics />}
 
       {/* Users */}
       {tab === "users" && (

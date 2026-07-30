@@ -4,6 +4,7 @@ import api from "@/lib/api";
 import { useI18n } from "@/context/I18nContext";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+import DocumentUploader from "@/components/DocumentUploader";
 import { FaSolarPanel } from "react-icons/fa";
 
 const SolarApply = () => {
@@ -87,6 +88,14 @@ const SolarApply = () => {
           <div><label className="label">{t({ hi: "आधार नंबर (वैकल्पिक)", en: "Aadhaar (optional)" })}</label><input className="input" value={f.aadhaar_number} onChange={set("aadhaar_number")} data-testid="solar-aadhaar-input" /></div>
           <div className="md:col-span-2"><label className="label">{t({ hi: "अतिरिक्त टिप्पणी", en: "Additional Notes" })}</label><textarea rows="3" className="input" value={f.notes} onChange={set("notes")} data-testid="solar-notes-input" /></div>
         </div>
+
+        {user && user !== false && (
+          <div className="pt-4 border-t border-white/5">
+            <label className="label">{t({ hi: "दस्तावेज़ अपलोड (वैकल्पिक)", en: "Upload Documents (optional)" })}</label>
+            <p className="text-xs text-slate-500 mb-3">{t({ hi: "आधार, बिजली बिल, फोटो — बाद में डैशबोर्ड से भी जोड़ सकते हैं।", en: "Aadhaar, electricity bill, photos — you can also add them later from the dashboard." })}</p>
+            <DocumentUploader />
+          </div>
+        )}
 
         <div className="flex items-center gap-3 pt-4 border-t border-white/5">
           <button type="submit" disabled={loading} className="btn-mint" data-testid="solar-submit-btn">

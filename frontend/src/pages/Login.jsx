@@ -52,7 +52,9 @@ const Login = () => {
           <div>
             <div className="flex items-center justify-between">
               <label className="label mb-0">{lang === "hi" ? "पासवर्ड" : "Password"}</label>
-              <span className="text-xs text-slate-500">Min 6 chars</span>
+              <Link to="/forgot-password" className="text-xs link-mint" data-testid="forgot-password-link">
+                {lang === "hi" ? "भूल गए?" : "Forgot?"}
+              </Link>
             </div>
             <div className="input-icon-wrap mt-1.5">
               <FaLock className="icon" />

@@ -26,6 +26,8 @@ import Gallery from "@/pages/Gallery";
 import StatusLookup from "@/pages/StatusLookup";
 import AuthCallback from "@/pages/AuthCallback";
 import AdminPanel from "@/pages/AdminPanel";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -63,6 +65,8 @@ function AppRouter() {
       <Route path="/status" element={<StatusLookup />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
       <Route path="/admin" element={<Protected><AdminPanel /></Protected>} />
       <Route path="*" element={

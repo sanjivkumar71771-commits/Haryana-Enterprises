@@ -8,11 +8,13 @@ load_dotenv(ROOT_DIR / ".env")
 import os
 import logging
 import uuid
+import secrets
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List
 
 import httpx
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, Body
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, Body, UploadFile, File, Form
+from fastapi.responses import FileResponse
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr, ConfigDict
 from starlette.middleware.cors import CORSMiddleware
@@ -28,6 +30,7 @@ from auth import (
     get_current_user,
     require_admin,
 )
+from emails import send_email, render_confirmation, render_reset
 
 # MongoDB
 mongo_url = os.environ["MONGO_URL"]
@@ -109,6 +112,22 @@ class NoticeIn(BaseModel):
     title_hi: str
     title_en: str
     type: str = "info"
+
+
+class ForgotPasswordIn(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordIn(BaseModel):
+    token: str
+    password: str = Field(min_length=6)
+
+
+# ─────────── Uploads dir ───────────
+UPLOAD_DIR = ROOT_DIR / "uploads"
+UPLOAD_DIR.mkdir(exist_ok=True)
+ALLOWED_MIME = {"application/pdf", "image/jpeg", "image/png", "image/webp"}
+MAX_UPLOAD_MB = 8
 
 
 # ─────────── Helpers ───────────
@@ -261,6 +280,56 @@ async def me(user=Depends(get_current_user)):
     return user_public(user)
 
 
+# ─────────── Password reset ───────────
+@api.post("/auth/forgot-password")
+async def forgot_password(payload: ForgotPasswordIn, request: Request):
+    email = payload.email.lower()
+    user = await db.users.find_one({"email": email})
+    # Do not leak whether email exists — always return ok.
+    if user:
+        token = secrets.token_urlsafe(32)
+        await db.password_reset_tokens.insert_one({
+            "token": token,
+            "user_id": user.get("user_id") or str(user["_id"]),
+            "email": email,
+            "expires_at": datetime.now(timezone.utc) + timedelta(hours=1),
+            "used": False,
+            "created_at": datetime.now(timezone.utc),
+        })
+        # Build reset link using frontend origin
+        origin = request.headers.get("origin") or os.environ.get("FRONTEND_URL", "")
+        reset_link = f"{origin.rstrip('/')}/reset-password?token={token}"
+        subject, html = render_reset(user.get("name", "there"), reset_link)
+        send_email(email, subject, html)
+        log.info(f"Password reset requested for {email}. Link: {reset_link}")
+    return {"ok": True, "message": "If the email exists, a reset link has been sent."}
+
+
+@api.post("/auth/reset-password")
+async def reset_password(payload: ResetPasswordIn):
+    doc = await db.password_reset_tokens.find_one({"token": payload.token})
+    if not doc or doc.get("used"):
+        raise HTTPException(status_code=400, detail="Invalid or already used token")
+    exp = doc["expires_at"]
+    if isinstance(exp, str):
+        exp = datetime.fromisoformat(exp)
+    if exp.tzinfo is None:
+        exp = exp.replace(tzinfo=timezone.utc)
+    if exp < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Token expired")
+
+    # Update password
+    new_hash = hash_password(payload.password)
+    user_id = doc["user_id"]
+    result = await db.users.update_one({"user_id": user_id}, {"$set": {"password_hash": new_hash}})
+    if result.matched_count == 0:
+        # Fallback by email
+        await db.users.update_one({"email": doc["email"]}, {"$set": {"password_hash": new_hash}})
+
+    await db.password_reset_tokens.update_one({"_id": doc["_id"]}, {"$set": {"used": True}})
+    return {"ok": True, "message": "Password updated. You can now sign in."}
+
+
 # ─────────── Contact ───────────
 @api.post("/contact")
 async def create_contact(payload: ContactIn):
@@ -289,6 +358,22 @@ async def solar_apply(payload: SolarApplicationIn, request: Request):
     doc["user_id"] = u["id"] if u else None
     res = await db.solar_applications.insert_one(doc)
     doc["_id"] = str(res.inserted_id)
+
+    # Send confirmation email (best-effort, non-blocking failure)
+    try:
+        subject, html = render_confirmation(
+            "solar", payload.full_name, doc["ref_no"],
+            extra_lines=[
+                f"Application type: {payload.application_type}",
+                f"Property: {payload.property_type} · {payload.city}, {payload.state} - {payload.pincode}",
+                (f"Estimated capacity: {payload.estimated_kw} kW" if payload.estimated_kw else None),
+                (f"Monthly bill: ₹{payload.monthly_bill:,.0f}" if payload.monthly_bill else None),
+            ],
+        )
+        send_email(payload.email, subject, html)
+    except Exception as e:
+        log.warning(f"Failed to send solar confirmation email: {e}")
+
     return {"application": doc_public(doc)}
 
 
@@ -308,6 +393,21 @@ async def loan_apply(payload: LoanApplicationIn, request: Request):
     doc["user_id"] = u["id"] if u else None
     res = await db.loan_applications.insert_one(doc)
     doc["_id"] = str(res.inserted_id)
+
+    try:
+        subject, html = render_confirmation(
+            "loan", payload.full_name, doc["ref_no"],
+            extra_lines=[
+                f"Loan type: {payload.loan_type}",
+                f"Amount requested: ₹{payload.loan_amount:,.0f}",
+                f"Tenure: {payload.loan_tenure_months} months",
+                f"Monthly income: ₹{payload.monthly_income:,.0f}",
+            ],
+        )
+        send_email(payload.email, subject, html)
+    except Exception as e:
+        log.warning(f"Failed to send loan confirmation email: {e}")
+
     return {"application": doc_public(doc)}
 
 
@@ -315,6 +415,61 @@ async def loan_apply(payload: LoanApplicationIn, request: Request):
 async def my_loan_apps(user=Depends(get_current_user)):
     apps = await db.loan_applications.find({"user_id": user["id"]}).sort("created_at", -1).to_list(200)
     return [doc_public(a) for a in apps]
+
+
+# ─────────── File uploads ───────────
+@api.post("/uploads")
+async def upload_file(
+    file: UploadFile = File(...),
+    kind: str = Form("misc"),
+    ref_no: Optional[str] = Form(None),
+    user=Depends(get_current_user),
+):
+    if file.content_type not in ALLOWED_MIME:
+        raise HTTPException(status_code=400, detail=f"Only PDF/JPEG/PNG/WebP allowed. Got {file.content_type}")
+    body = await file.read()
+    if len(body) > MAX_UPLOAD_MB * 1024 * 1024:
+        raise HTTPException(status_code=400, detail=f"File too large. Max {MAX_UPLOAD_MB} MB.")
+
+    ext = {"application/pdf": "pdf", "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}[file.content_type]
+    fname = f"{uuid.uuid4().hex}.{ext}"
+    fpath = UPLOAD_DIR / fname
+    fpath.write_bytes(body)
+
+    meta = {
+        "id": fname,
+        "user_id": user["id"],
+        "original_name": file.filename,
+        "mime": file.content_type,
+        "size": len(body),
+        "kind": kind,
+        "ref_no": ref_no,
+        "url": f"/api/uploads/{fname}",
+        "created_at": datetime.now(timezone.utc),
+    }
+    await db.uploads.insert_one(meta)
+
+    # If ref_no is attached, push URL into the application's documents array
+    if ref_no:
+        upd = {"$push": {"documents": {"kind": kind, "url": meta["url"], "original_name": file.filename, "size": len(body)}}}
+        r1 = await db.solar_applications.update_one({"ref_no": ref_no, "user_id": user["id"]}, upd)
+        if r1.matched_count == 0:
+            await db.loan_applications.update_one({"ref_no": ref_no, "user_id": user["id"]}, upd)
+
+    meta.pop("_id", None)
+    meta["created_at"] = meta["created_at"].isoformat()
+    return meta
+
+
+@api.get("/uploads/{fname}")
+async def get_upload(fname: str):
+    # Basic path traversal guard
+    if "/" in fname or "\\" in fname or ".." in fname:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    fpath = UPLOAD_DIR / fname
+    if not fpath.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(fpath)
 
 
 # ─────────── Public Status ───────────
@@ -359,6 +514,53 @@ async def admin_stats(_=Depends(require_admin)):
         "solar_approved": await db.solar_applications.count_documents({"status": "approved"}),
         "loan_approved": await db.loan_applications.count_documents({"status": "approved"}),
     }
+
+
+@api.get("/admin/analytics")
+async def admin_analytics(_=Depends(require_admin)):
+    """Aggregate analytics for dashboard charts."""
+    now = datetime.now(timezone.utc)
+    days = [(now - timedelta(days=i)).date() for i in range(29, -1, -1)]
+
+    async def by_day(coll_name):
+        buckets = {d.isoformat(): 0 for d in days}
+        cur = db[coll_name].find({"created_at": {"$gte": now - timedelta(days=30)}})
+        async for doc in cur:
+            ca = doc.get("created_at")
+            if isinstance(ca, str):
+                try: ca = datetime.fromisoformat(ca)
+                except Exception: continue
+            if not ca: continue
+            key = ca.date().isoformat()
+            if key in buckets:
+                buckets[key] += 1
+        return [{"date": k, "count": v} for k, v in buckets.items()]
+
+    async def by_status(coll_name):
+        pipeline = [{"$group": {"_id": "$status", "count": {"$sum": 1}}}]
+        return [{"status": r["_id"] or "unknown", "count": r["count"]} async for r in db[coll_name].aggregate(pipeline)]
+
+    async def by_type(coll_name, field):
+        pipeline = [{"$group": {"_id": f"${field}", "count": {"$sum": 1}}}]
+        return [{"type": r["_id"] or "unknown", "count": r["count"]} async for r in db[coll_name].aggregate(pipeline)]
+
+    async def loan_amount_stats():
+        pipeline = [{"$group": {"_id": None, "total": {"$sum": "$loan_amount"}, "avg": {"$avg": "$loan_amount"}, "max": {"$max": "$loan_amount"}}}]
+        async for r in db.loan_applications.aggregate(pipeline):
+            return {"total": r.get("total") or 0, "avg": r.get("avg") or 0, "max": r.get("max") or 0}
+        return {"total": 0, "avg": 0, "max": 0}
+
+    return {
+        "solar_by_day": await by_day("solar_applications"),
+        "loan_by_day": await by_day("loan_applications"),
+        "user_by_day": await by_day("users"),
+        "solar_by_status": await by_status("solar_applications"),
+        "loan_by_status": await by_status("loan_applications"),
+        "solar_by_type": await by_type("solar_applications", "application_type"),
+        "loan_by_type": await by_type("loan_applications", "loan_type"),
+        "loan_amount": await loan_amount_stats(),
+    }
+
 
 
 @api.get("/admin/users")
@@ -446,6 +648,9 @@ async def startup():
     await db.user_sessions.create_index("expires_at")
     await db.solar_applications.create_index("ref_no", unique=True)
     await db.loan_applications.create_index("ref_no", unique=True)
+    await db.password_reset_tokens.create_index("token", unique=True)
+    await db.password_reset_tokens.create_index("expires_at", expireAfterSeconds=0)
+    await db.uploads.create_index("user_id")
 
     # Backfill user_id on legacy users
     async for u in db.users.find({"user_id": {"$exists": False}}):
