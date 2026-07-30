@@ -9,14 +9,16 @@ const IMAGES = [
 ];
 
 const Gallery = () => {
-  const { t } = useI18n();
+  const { lang } = useI18n();
   return (
     <div className="max-w-7xl mx-auto px-4 py-12" data-testid="gallery-page">
-      <h1 className="section-title text-3xl">{t({ hi: "गैलरी", en: "Gallery" })}</h1>
+      <div className="section-eyebrow">Gallery</div>
+      <h1 className="section-title !text-3xl">{lang === "hi" ? "फ़ोटो गैलरी" : "Photo Gallery"}</h1>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
         {[...IMAGES, ...IMAGES].map((src, i) => (
-          <div key={i} className="rounded-lg overflow-hidden aspect-square group cursor-pointer border border-slate-200" data-testid={`gallery-item-${i}`}>
+          <div key={i} className="rounded-2xl overflow-hidden aspect-square group cursor-pointer border border-white/10 relative" data-testid={`gallery-item-${i}`}>
             <img src={src} alt={`gallery-${i}`} className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
+            <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/60 to-transparent opacity-0 group-hover:opacity-100 transition"></div>
           </div>
         ))}
       </div>

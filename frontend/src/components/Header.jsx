@@ -4,10 +4,10 @@ import { useAuth } from "@/context/AuthContext";
 import { useI18n } from "@/context/I18nContext";
 import { S } from "@/lib/strings";
 import {
-  FaPhone, FaEnvelope, FaWhatsapp, FaMapMarkerAlt, FaBars, FaTimes,
-  FaSignOutAlt, FaSitemap, FaAssistiveListeningSystems, FaAdjust, FaHome, FaInfoCircle,
-  FaCogs, FaSolarPanel, FaMoneyBillWave, FaImages, FaBullhorn, FaFileDownload,
-  FaQuestionCircle, FaHeadset, FaTachometerAlt, FaSearch
+  FaSolarPanel, FaMoneyBillWave, FaBars, FaTimes,
+  FaTachometerAlt, FaFileDownload, FaHeadset, FaHome, FaInfoCircle,
+  FaCogs, FaImages, FaBullhorn, FaQuestionCircle, FaChevronDown,
+  FaAdjust, FaLanguage, FaSignOutAlt
 } from "react-icons/fa";
 
 const Header = () => {
@@ -15,10 +15,10 @@ const Header = () => {
   const { lang, toggle, t } = useI18n();
   const nav = useNavigate();
   const [open, setOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
 
-  // Accessibility: font size + theme
   const [fontSize, setFontSize] = useState(localStorage.getItem("fontSize") || "normal");
-  const [dark, setDark] = useState(localStorage.getItem("darkTheme") === "1");
+  const [light, setLight] = useState(localStorage.getItem("lightTheme") === "1");
 
   useEffect(() => {
     document.body.classList.remove("font-large", "font-small");
@@ -28,19 +28,21 @@ const Header = () => {
   }, [fontSize]);
 
   useEffect(() => {
-    document.body.classList.toggle("dark-theme", dark);
-    localStorage.setItem("darkTheme", dark ? "1" : "0");
-  }, [dark]);
+    document.body.classList.toggle("light-theme", light);
+    localStorage.setItem("lightTheme", light ? "1" : "0");
+  }, [light]);
 
-  const links = [
+  const primaryLinks = [
     { to: "/", label: t(S.nav.home), icon: FaHome },
-    { to: "/about", label: t(S.nav.about), icon: FaInfoCircle },
-    { to: "/services", label: t(S.nav.services), icon: FaCogs },
     { to: "/solar/apply", label: t(S.nav.solar), icon: FaSolarPanel },
     { to: "/loan/apply", label: t(S.nav.loan), icon: FaMoneyBillWave },
+    { to: "/downloads", label: t(S.nav.downloads), icon: FaFileDownload },
+  ];
+  const moreLinks = [
+    { to: "/about", label: t(S.nav.about), icon: FaInfoCircle },
+    { to: "/services", label: t(S.nav.services), icon: FaCogs },
     { to: "/gallery", label: t(S.nav.gallery), icon: FaImages },
     { to: "/notices", label: t(S.nav.notices), icon: FaBullhorn },
-    { to: "/downloads", label: t(S.nav.downloads), icon: FaFileDownload },
     { to: "/faq", label: t(S.nav.faq), icon: FaQuestionCircle },
     { to: "/contact", label: t(S.nav.contact), icon: FaHeadset },
   ];
@@ -49,136 +51,130 @@ const Header = () => {
 
   return (
     <>
-      {/* ─────────── Accessibility Strip ─────────── */}
-      <div className="a11y-strip" data-testid="a11y-strip">
-        <div className="max-w-7xl mx-auto px-4 py-1 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-4">
-            <a href="#main-content" className="hover:underline" data-testid="skip-content-link">Skip to main content</a>
-            <span className="text-slate-400">|</span>
-            <button className="flex items-center gap-1 hover:text-emerald-700" data-testid="screen-reader-btn"><FaAssistiveListeningSystems /> Screen Reader</button>
-            <span className="text-slate-400">|</span>
-            <Link to="/sitemap" className="flex items-center gap-1 hover:text-emerald-700" data-testid="sitemap-link"><FaSitemap /> Sitemap</Link>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-slate-600 hidden md:inline">Font Size:</span>
-            <button className={`a11y-btn ${fontSize === "small" ? "active" : ""}`} onClick={() => setFontSize("small")} data-testid="font-small-btn" title="Small font" aria-label="Small font">A-</button>
-            <button className={`a11y-btn ${fontSize === "normal" ? "active" : ""}`} onClick={() => setFontSize("normal")} data-testid="font-normal-btn" title="Normal font" aria-label="Normal font">A</button>
-            <button className={`a11y-btn ${fontSize === "large" ? "active" : ""}`} onClick={() => setFontSize("large")} data-testid="font-large-btn" title="Large font" aria-label="Large font">A+</button>
-            <span className="text-slate-400 mx-1">|</span>
-            <button className="a11y-btn" onClick={() => setDark(v => !v)} data-testid="theme-toggle-btn" title="Toggle theme" aria-label="Toggle theme"><FaAdjust /></button>
-            <span className="text-slate-400 mx-1">|</span>
-            <button onClick={toggle} className="a11y-btn font-semibold" data-testid="lang-toggle-btn" title="Change language">
-              {lang === "hi" ? "English" : "हिंदी"}
-            </button>
-            <span className="text-slate-400 mx-1 hidden md:inline">|</span>
-            {user && user !== false ? (
-              <>
-                <Link to="/dashboard" className="a11y-btn hidden md:inline-flex" data-testid="topbar-dashboard-link"><FaTachometerAlt className="mr-1" /> {t(S.nav.dashboard)}</Link>
-                <button onClick={onLogout} className="a11y-btn hidden md:inline-flex" data-testid="topbar-logout-btn"><FaSignOutAlt className="mr-1" /> {t(S.nav.logout)}</button>
-              </>
-            ) : (
-              <>
-                <Link to="/login" className="a11y-btn" data-testid="topbar-login-link">{t(S.nav.login)}</Link>
-                <Link to="/register" className="a11y-btn" data-testid="topbar-register-link">{t(S.nav.register)}</Link>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ─────────── Emblem / Logo Header ─────────── */}
-      <div className="emblem-header" data-testid="emblem-header">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
-          {/* National Emblem (Ashoka) */}
-          <Link to="/" data-testid="brand-emblem-link" className="flex items-center gap-3 shrink-0">
-            <img
-              src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/55/Emblem_of_India.svg/120px-Emblem_of_India.svg.png"
-              alt="Emblem of Haryana"
-              className="h-16 w-16 object-contain"
-            />
-            <div className="hidden sm:block">
-              <div className="text-xs text-slate-500 uppercase tracking-wider">Government Approved Partner</div>
-              <div className="text-xl md:text-2xl font-bold text-emerald-800 leading-tight font-hindi">
+      {/* ─────────── Top Strip ─────────── */}
+      <div className="top-strip" data-testid="top-strip">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-4 flex-wrap">
+          {/* Brand */}
+          <Link to="/" className="flex items-center gap-3 shrink-0" data-testid="brand-link">
+            <div className="brand-emblem">
+              <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/55/Emblem_of_India.svg/120px-Emblem_of_India.svg.png"
+                alt="Emblem" className="w-9 h-9 object-contain" style={{ filter: "brightness(1.3)" }} />
+            </div>
+            <div className="leading-tight">
+              <div className="font-display text-xl font-extrabold text-white tracking-tight">
                 {lang === "hi" ? "हरियाणा एंटरप्राइजेज" : "Haryana Enterprises"}
               </div>
-              <div className="text-xs text-slate-600 font-medium">
-                {lang === "hi" ? "सोलर एवं वित्तीय सेवाएँ · कागदाना, सिरसा, हरियाणा" : "Solar & Financial Services · Kagdana, Sirsa, Haryana"}
+              <div className="text-[10px] font-semibold text-slate-400 tracking-[0.2em] uppercase mt-0.5">
+                Solar · Subsidy · Loan · Installation
               </div>
             </div>
           </Link>
 
-          {/* Center info */}
+          {/* Right controls */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="status-pill" data-testid="status-pill">
+              <span className="status-dot"></span>
+              System Status: All Systems Operational
+            </div>
+
+            {/* Font size */}
+            <div className="a11y-group" data-testid="font-size-group">
+              <button className={`a11y-btn ${fontSize === "small" ? "active" : ""}`} onClick={() => setFontSize("small")} data-testid="font-small-btn" aria-label="Small">A-</button>
+              <button className={`a11y-btn ${fontSize === "normal" ? "active" : ""}`} onClick={() => setFontSize("normal")} data-testid="font-normal-btn" aria-label="Normal">A</button>
+              <button className={`a11y-btn ${fontSize === "large" ? "active" : ""}`} onClick={() => setFontSize("large")} data-testid="font-large-btn" aria-label="Large">A+</button>
+            </div>
+
+            <button className="a11y-btn" onClick={toggle} data-testid="lang-toggle-btn" title="Language" aria-label="Language">
+              <FaLanguage className="mr-1" /> {lang === "hi" ? "EN" : "हिं"}
+            </button>
+            <button className="a11y-btn" onClick={() => setLight(v => !v)} data-testid="theme-toggle-btn" title="Theme" aria-label="Theme">
+              <FaAdjust />
+            </button>
+
+            <button className="lg:hidden a11y-btn" onClick={() => setOpen(v => !v)} data-testid="mobile-menu-toggle" aria-label="Menu">
+              {open ? <FaTimes /> : <FaBars />}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ─────────── Sub Nav ─────────── */}
+      <nav className="subnav sticky top-0 z-40 hidden lg:block" data-testid="main-nav">
+        <div className="max-w-7xl mx-auto px-4 flex items-center gap-2">
+          {primaryLinks.map(l => {
+            const Icon = l.icon;
+            return (
+              <NavLink key={l.to} to={l.to} end={l.to === "/"} className={({ isActive }) => `subnav-link ${isActive ? "active" : ""}`} data-testid={`nav-${l.to.replace(/\//g, "-") || "home"}`}>
+                <Icon /> {l.label}
+              </NavLink>
+            );
+          })}
+
+          {/* More dropdown */}
+          <div className="relative">
+            <button className="subnav-link" onClick={() => setMoreOpen(v => !v)} onBlur={() => setTimeout(() => setMoreOpen(false), 150)} data-testid="nav-more">
+              <FaBars /> More <FaChevronDown className={`text-xs transition-transform ${moreOpen ? "rotate-180" : ""}`} />
+            </button>
+            {moreOpen && (
+              <div className="absolute left-0 top-full mt-1 glass-strong p-2 min-w-[220px] z-50" data-testid="nav-more-menu">
+                {moreLinks.map(l => {
+                  const Icon = l.icon;
+                  return (
+                    <NavLink key={l.to} to={l.to} onClick={() => setMoreOpen(false)} className={({ isActive }) => `subnav-link !w-full ${isActive ? "active" : ""}`} data-testid={`nav-more-${l.to.replace(/\//g, "-")}`}>
+                      <Icon /> {l.label}
+                    </NavLink>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           <div className="flex-1"></div>
 
-          {/* Right side badges: contact + PM Surya Ghar promo */}
-          <div className="hidden lg:flex items-center gap-4">
-            <div className="text-right">
-              <div className="text-xs text-slate-500 uppercase tracking-wider">Toll Free / Helpline</div>
-              <a href="tel:8167862016" className="text-lg font-bold text-emerald-800 flex items-center gap-1.5 justify-end">
-                <FaPhone className="text-orange-600" /> 8167862016
-              </a>
-              <a href="https://wa.me/918168762016" target="_blank" rel="noreferrer" className="text-xs text-slate-600 flex items-center gap-1 justify-end hover:text-emerald-700">
-                <FaWhatsapp className="text-green-600" /> 8168762016 (WhatsApp)
-              </a>
-            </div>
-            <div className="w-24 h-16 rounded overflow-hidden border border-orange-300 shrink-0 shadow-sm">
-              <div className="h-full bg-gradient-to-br from-orange-500 via-white to-green-600 flex items-center justify-center text-[10px] font-bold text-emerald-800 text-center p-1 leading-tight">
-                PM SURYA<br />GHAR<br />YOJANA
-              </div>
-            </div>
-          </div>
-
-          {/* Mobile toggle */}
-          <button className="lg:hidden text-2xl text-emerald-800 ml-auto" onClick={() => setOpen(v => !v)} data-testid="mobile-menu-toggle" aria-label="Toggle menu">
-            {open ? <FaTimes /> : <FaBars />}
-          </button>
+          {user && user !== false ? (
+            <>
+              <NavLink to="/dashboard" className={({ isActive }) => `subnav-link ${isActive ? "active" : ""}`} data-testid="nav-dashboard">
+                <FaTachometerAlt /> {t(S.nav.dashboard)}
+              </NavLink>
+              <button onClick={onLogout} className="btn-ghost text-sm" data-testid="topbar-logout-btn">
+                <FaSignOutAlt /> {t(S.nav.logout)}
+              </button>
+            </>
+          ) : (
+            <>
+              <NavLink to="/login" className="btn-ghost text-sm" data-testid="topbar-login-link">{t(S.nav.login)}</NavLink>
+              <NavLink to="/register" className="btn-mint text-sm !py-2 !px-4" data-testid="topbar-register-link">{t(S.nav.register)}</NavLink>
+            </>
+          )}
         </div>
-      </div>
-
-      {/* Tricolor accent */}
-      <div className="tricolor-strip">
-        <div className="b1"></div><div className="b2"></div><div className="b3"></div>
-      </div>
-
-      {/* ─────────── Green Navigation Bar ─────────── */}
-      <nav className="gov-nav sticky top-0 z-40 shadow-md" data-testid="main-nav">
-        <div className="max-w-7xl mx-auto px-2 hidden lg:flex items-stretch justify-between">
-          <div className="flex items-stretch">
-            {links.map(l => {
-              const Icon = l.icon;
-              return (
-                <NavLink key={l.to} to={l.to} end={l.to === "/"} className={({ isActive }) => `gov-nav-link ${isActive ? "active" : ""}`} data-testid={`nav-${l.to.replace(/\//g, "-") || "home"}`}>
-                  <Icon className="text-xs opacity-90" /> {l.label}
-                </NavLink>
-              );
-            })}
-          </div>
-          <div className="flex items-stretch">
-            <a href="https://wa.me/918168762016" target="_blank" rel="noreferrer" className="gov-nav-link !border-r-0 bg-orange-600 hover:!bg-orange-700" data-testid="header-whatsapp-btn">
-              <FaWhatsapp /> WhatsApp
-            </a>
-          </div>
-        </div>
-
-        {/* Mobile menu */}
-        {open && (
-          <div className="lg:hidden bg-emerald-800 pb-2" data-testid="mobile-menu">
-            <div className="max-w-7xl mx-auto px-2 flex flex-col">
-              {links.map(l => {
-                const Icon = l.icon;
-                return (
-                  <NavLink key={l.to} to={l.to} end={l.to === "/"} onClick={() => setOpen(false)} className={({ isActive }) => `flex items-center gap-2 py-2 px-3 text-white text-sm border-b border-emerald-700 ${isActive ? "bg-emerald-700" : ""}`} data-testid={`mobile-nav-${l.to.replace(/\//g, "-") || "home"}`}>
-                    <Icon /> {l.label}
-                  </NavLink>
-                );
-              })}
-              <a href="https://wa.me/918168762016" target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 py-2.5 mt-2 mx-3 rounded bg-orange-500 text-white text-sm font-semibold" data-testid="mobile-whatsapp-btn">
-                <FaWhatsapp /> WhatsApp: 8168762016
-              </a>
-            </div>
-          </div>
-        )}
       </nav>
+
+      {/* Mobile menu */}
+      {open && (
+        <div className="lg:hidden glass-strong mx-4 mt-2 p-3" data-testid="mobile-menu">
+          {[...primaryLinks, ...moreLinks].map(l => {
+            const Icon = l.icon;
+            return (
+              <NavLink key={l.to} to={l.to} end={l.to === "/"} onClick={() => setOpen(false)} className={({ isActive }) => `subnav-link !w-full ${isActive ? "active" : ""}`} data-testid={`mobile-nav-${l.to.replace(/\//g, "-") || "home"}`}>
+                <Icon /> {l.label}
+              </NavLink>
+            );
+          })}
+          <div className="border-t border-white/10 my-2 pt-2 flex gap-2">
+            {user && user !== false ? (
+              <>
+                <NavLink to="/dashboard" onClick={() => setOpen(false)} className="btn-ghost text-sm flex-1"><FaTachometerAlt /> {t(S.nav.dashboard)}</NavLink>
+                <button onClick={() => { onLogout(); setOpen(false); }} className="btn-ghost text-sm flex-1"><FaSignOutAlt /> {t(S.nav.logout)}</button>
+              </>
+            ) : (
+              <>
+                <NavLink to="/login" onClick={() => setOpen(false)} className="btn-ghost text-sm flex-1">{t(S.nav.login)}</NavLink>
+                <NavLink to="/register" onClick={() => setOpen(false)} className="btn-mint text-sm flex-1">{t(S.nav.register)}</NavLink>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 };

@@ -45,13 +45,13 @@ const SolarApply = () => {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-10" data-testid="solar-apply-page">
-      <div className="flex items-center gap-3 mb-2">
-        <div className="icon-circle !mb-0"><FaSolarPanel /></div>
-        <h1 className="section-title text-3xl !pb-1">{t({ hi: "सोलर आवेदन फॉर्म", en: "Solar Application Form" })}</h1>
+      <div className="mb-2">
+        <div className="section-eyebrow">Solar Portal</div>
+        <h1 className="section-title !text-3xl">{t({ hi: "सोलर आवेदन फॉर्म", en: "Solar Application Form" })}</h1>
       </div>
-      <p className="text-slate-600 mt-2 mb-6">{t({ hi: "PM सूर्य घर, रूफटॉप सोलर या इंस्टॉलेशन के लिए आवेदन करें। हमारी टीम 24 घंटे में संपर्क करेगी।", en: "Apply for PM Surya Ghar, Rooftop Solar or Installation. Our team will contact you within 24 hours." })}</p>
+      <p className="text-slate-400 mt-2 mb-6 text-sm">{t({ hi: "PM सूर्य घर, रूफटॉप सोलर या इंस्टॉलेशन के लिए आवेदन करें। हमारी टीम 24 घंटे में संपर्क करेगी।", en: "Apply for PM Surya Ghar, Rooftop Solar or Installation. Our team will contact you within 24 hours." })}</p>
 
-      <form onSubmit={submit} className="bg-white p-6 md:p-8 rounded-lg border border-slate-200 shadow-sm space-y-5" data-testid="solar-apply-form">
+      <form onSubmit={submit} className="glass p-6 md:p-8 space-y-5" data-testid="solar-apply-form">
         <div>
           <label className="label">{t({ hi: "आवेदन का प्रकार", en: "Application Type" })} *</label>
           <select className="input" value={f.application_type} onChange={set("application_type")} data-testid="solar-type-select" required>
@@ -88,17 +88,15 @@ const SolarApply = () => {
           <div className="md:col-span-2"><label className="label">{t({ hi: "अतिरिक्त टिप्पणी", en: "Additional Notes" })}</label><textarea rows="3" className="input" value={f.notes} onChange={set("notes")} data-testid="solar-notes-input" /></div>
         </div>
 
-        <div className="flex items-center gap-3 pt-4 border-t border-slate-100">
-          <button type="submit" disabled={loading} className="btn-primary" data-testid="solar-submit-btn">
-            {loading ? "..." : <><i className="fa-solid fa-paper-plane"></i> {t(S_hero_apply_now(lang))}</>}
+        <div className="flex items-center gap-3 pt-4 border-t border-white/5">
+          <button type="submit" disabled={loading} className="btn-mint" data-testid="solar-submit-btn">
+            {loading ? "..." : <><i className="fa-solid fa-paper-plane"></i> {lang === "hi" ? "अभी आवेदन करें" : "Apply Now"}</>}
           </button>
-          <span className="text-sm text-slate-500">{t({ hi: "फॉर्म सबमिट करने के बाद रेफ. नंबर मिलेगा।", en: "You will receive a reference number after submission." })}</span>
+          <span className="text-xs text-slate-400">{t({ hi: "फॉर्म सबमिट करने के बाद रेफ. नंबर मिलेगा।", en: "You will receive a reference number after submission." })}</span>
         </div>
       </form>
     </div>
   );
 };
-
-const S_hero_apply_now = (lang) => (lang === "hi" ? "अभी आवेदन करें" : "Apply Now");
 
 export default SolarApply;

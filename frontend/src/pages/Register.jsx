@@ -3,11 +3,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useI18n } from "@/context/I18nContext";
 import { toast } from "sonner";
-import { FaUserPlus } from "react-icons/fa";
+import { FaUserPlus, FaEnvelope, FaLock, FaUser, FaPhone } from "react-icons/fa";
 
 const Register = () => {
   const { register } = useAuth();
-  const { t } = useI18n();
+  const { lang } = useI18n();
   const nav = useNavigate();
   const [f, setF] = useState({ name: "", email: "", phone: "", password: "" });
   const [loading, setLoading] = useState(false);
@@ -18,7 +18,7 @@ const Register = () => {
     setLoading(true);
     try {
       await register(f);
-      toast.success(t({ hi: "खाता बन गया!", en: "Account created!" }));
+      toast.success(lang === "hi" ? "अकाउंट बना!" : "Account created!");
       nav("/dashboard");
     } catch (err) {
       const d = err.response?.data?.detail;
@@ -28,26 +28,36 @@ const Register = () => {
 
   return (
     <div className="max-w-md mx-auto px-4 py-16" data-testid="register-page">
-      <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-8">
-        <div className="text-center mb-6">
-          <div className="w-14 h-14 rounded-full bg-orange-100 text-orange-600 inline-flex items-center justify-center mb-3 text-2xl"><FaUserPlus /></div>
-          <h1 className="text-2xl font-bold text-emerald-900">{t({ hi: "नया खाता बनाएँ", en: "Create Account" })}</h1>
-        </div>
-        <form onSubmit={submit} className="space-y-4">
-          <div><label className="label">{t({ hi: "पूरा नाम", en: "Full Name" })} *</label>
-            <input required className="input" value={f.name} onChange={set("name")} data-testid="reg-name-input" /></div>
-          <div><label className="label">Email *</label>
-            <input required type="email" className="input" value={f.email} onChange={set("email")} data-testid="reg-email-input" /></div>
-          <div><label className="label">{t({ hi: "मोबाइल", en: "Mobile" })} *</label>
-            <input required className="input" value={f.phone} onChange={set("phone")} data-testid="reg-phone-input" /></div>
-          <div><label className="label">Password (min 6) *</label>
-            <input required minLength={6} type="password" className="input" value={f.password} onChange={set("password")} data-testid="reg-password-input" /></div>
-          <button disabled={loading} className="btn-primary w-full justify-center" data-testid="reg-submit-btn">
-            {loading ? "..." : t({ hi: "रजिस्टर करें", en: "Register" })}
+      <div className="signin-card">
+        <span className="signin-pill">Register</span>
+        <div className="signin-badge"><FaUserPlus /></div>
+        <h1 className="font-display text-2xl font-bold text-white mb-1">{lang === "hi" ? "अकाउंट बनाएँ" : "Create Account"}</h1>
+        <p className="text-sm text-slate-400 mb-5">{lang === "hi" ? "अपनी सभी applications एक जगह पर track करें।" : "Track all your applications in one place."}</p>
+
+        <form onSubmit={submit} className="space-y-3">
+          <div>
+            <label className="label">{lang === "hi" ? "पूरा नाम" : "Full name"} <span className="req">*</span></label>
+            <div className="input-icon-wrap"><FaUser className="icon" /><input required className="input" value={f.name} onChange={set("name")} data-testid="reg-name-input" /></div>
+          </div>
+          <div>
+            <label className="label">{lang === "hi" ? "ईमेल" : "Email"} <span className="req">*</span></label>
+            <div className="input-icon-wrap"><FaEnvelope className="icon" /><input required type="email" className="input" value={f.email} onChange={set("email")} data-testid="reg-email-input" /></div>
+          </div>
+          <div>
+            <label className="label">{lang === "hi" ? "मोबाइल" : "Mobile"} <span className="req">*</span></label>
+            <div className="input-icon-wrap"><FaPhone className="icon" /><input required className="input" value={f.phone} onChange={set("phone")} data-testid="reg-phone-input" /></div>
+          </div>
+          <div>
+            <label className="label">{lang === "hi" ? "पासवर्ड (न्यूनतम 6)" : "Password (min 6)"} <span className="req">*</span></label>
+            <div className="input-icon-wrap"><FaLock className="icon" /><input required minLength={6} type="password" className="input" value={f.password} onChange={set("password")} data-testid="reg-password-input" /></div>
+          </div>
+          <button disabled={loading} className="btn-mint w-full mt-2" data-testid="reg-submit-btn">
+            {loading ? "..." : (lang === "hi" ? "अकाउंट बनाएँ" : "Create Account")}
           </button>
         </form>
-        <p className="text-sm text-center mt-6 text-slate-600">
-          {t({ hi: "पहले से खाता है?", en: "Already have an account?" })} <Link to="/login" className="text-emerald-700 font-semibold" data-testid="link-to-login">{t({ hi: "लॉगिन करें", en: "Login" })}</Link>
+
+        <p className="text-xs text-center mt-5 text-slate-400">
+          {lang === "hi" ? "पहले से खाता है?" : "Have an account?"} <Link to="/login" className="link-mint font-semibold" data-testid="link-to-login">{lang === "hi" ? "साइन इन करें" : "Sign in"}</Link>
         </p>
       </div>
     </div>

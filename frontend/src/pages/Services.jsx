@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { useI18n } from "@/context/I18nContext";
 import { S } from "@/lib/strings";
-import { FaSolarPanel, FaMoneyBillWave, FaHandshake, FaFileSignature, FaBolt, FaHome, FaTractor, FaIndustry } from "react-icons/fa";
+import { FaSolarPanel, FaMoneyBillWave, FaHandshake, FaFileSignature, FaBolt, FaHome, FaTractor, FaIndustry, FaChevronRight } from "react-icons/fa";
 
 const cards = [
   { icon: FaFileSignature, hi: "PM सूर्य घर योजना", en: "PM Surya Ghar Scheme", desc_hi: "मुफ्त बिजली योजना में रजिस्ट्रेशन।", desc_en: "Register for the Free Electricity Scheme.", to: "/solar/apply?type=pm_surya_ghar" },
@@ -19,17 +19,20 @@ const Services = () => {
   const { t, lang } = useI18n();
   return (
     <div className="max-w-7xl mx-auto px-4 py-12" data-testid="services-page">
-      <h1 className="section-title text-3xl">{t(S.services.title)}</h1>
-      <p className="text-slate-600 mt-3">{t(S.services.sub)}</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
+      <div className="section-eyebrow">Services</div>
+      <h1 className="section-title !text-3xl">{t(S.services.title)}</h1>
+      <p className="text-slate-400 mt-2 text-sm max-w-2xl">{t(S.services.sub)}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
         {cards.map((c, i) => {
           const Icon = c.icon;
           return (
-            <Link key={i} to={c.to} className="service-card" data-testid={`service-card-${i}`}>
-              <div className="icon-circle"><Icon /></div>
-              <h3 className="text-lg font-semibold text-emerald-900 mb-1">{lang === "hi" ? c.hi : c.en}</h3>
-              <p className="text-sm text-slate-600">{lang === "hi" ? c.desc_hi : c.desc_en}</p>
-              <div className="mt-3 text-orange-600 text-sm font-semibold">{t(S.common.apply)} <i className="fa-solid fa-arrow-right"></i></div>
+            <Link key={i} to={c.to} className="svc-card" data-testid={`service-card-${i}`}>
+              <div className="svc-icon"><Icon /></div>
+              <div className="font-display font-semibold text-white text-lg mb-1">{lang === "hi" ? c.hi : c.en}</div>
+              <div className="text-xs text-slate-400 mb-3">{lang === "hi" ? c.desc_hi : c.desc_en}</div>
+              <div className="text-emerald-400 text-xs font-semibold inline-flex items-center gap-1">
+                {lang === "hi" ? "अभी शुरू करें" : "Get started"} <FaChevronRight className="text-[10px]" />
+              </div>
             </Link>
           );
         })}

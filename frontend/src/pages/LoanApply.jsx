@@ -53,13 +53,13 @@ const LoanApply = () => {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-10" data-testid="loan-apply-page">
-      <div className="flex items-center gap-3 mb-2">
-        <div className="icon-circle !mb-0"><FaMoneyCheckAlt /></div>
-        <h1 className="section-title text-3xl !pb-1">{t({ hi: "लोन आवेदन फॉर्म", en: "Loan Application Form" })}</h1>
+      <div className="mb-2">
+        <div className="section-eyebrow">Loan Portal</div>
+        <h1 className="section-title !text-3xl">{t({ hi: "लोन आवेदन फॉर्म", en: "Loan Application Form" })}</h1>
       </div>
-      <p className="text-slate-600 mt-2 mb-6">{t({ hi: "सोलर, बिज़नेस या पर्सनल लोन के लिए आवेदन करें। 5-7 दिनों में मंज़ूरी।", en: "Apply for Solar, Business or Personal loan. Approval in 5-7 days." })}</p>
+      <p className="text-slate-400 mt-2 mb-6 text-sm">{t({ hi: "सोलर, बिज़नेस या पर्सनल लोन के लिए आवेदन करें। 5-7 दिनों में मंज़ूरी।", en: "Apply for Solar, Business or Personal loan. Approval in 5-7 days." })}</p>
 
-      <form onSubmit={submit} className="bg-white p-6 md:p-8 rounded-lg border border-slate-200 shadow-sm space-y-5" data-testid="loan-apply-form">
+      <form onSubmit={submit} className="glass p-6 md:p-8 space-y-5" data-testid="loan-apply-form">
         <div>
           <label className="label">{t({ hi: "लोन प्रकार", en: "Loan Type" })} *</label>
           <select className="input" value={f.loan_type} onChange={set("loan_type")} data-testid="loan-type-select" required>
@@ -98,17 +98,17 @@ const LoanApply = () => {
         </div>
 
         {emi > 0 && (
-          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex items-center justify-between" data-testid="emi-preview">
+          <div className="glass p-4 flex items-center justify-between border-emerald-500/30 !bg-emerald-500/5" data-testid="emi-preview">
             <div>
-              <div className="text-sm text-slate-600">{t({ hi: "अनुमानित EMI (7.5% ब्याज)", en: "Estimated EMI (7.5% interest)" })}</div>
-              <div className="text-2xl font-bold text-emerald-800">₹ {emi.toLocaleString("en-IN")}<span className="text-sm font-normal text-slate-500"> / {t({ hi: "माह", en: "month" })}</span></div>
+              <div className="text-xs text-slate-400 uppercase tracking-widest">{t({ hi: "अनुमानित EMI (7.5% ब्याज)", en: "Estimated EMI (7.5% interest)" })}</div>
+              <div className="text-3xl font-display font-bold text-emerald-400">₹ {emi.toLocaleString("en-IN")}<span className="text-sm font-normal text-slate-500"> / {t({ hi: "माह", en: "month" })}</span></div>
             </div>
-            <div className="text-orange-600 text-3xl"><i className="fa-solid fa-calculator"></i></div>
+            <div className="text-amber-400 text-4xl"><i className="fa-solid fa-calculator"></i></div>
           </div>
         )}
 
-        <div className="flex items-center gap-3 pt-4 border-t border-slate-100">
-          <button type="submit" disabled={loading} className="btn-primary" data-testid="loan-submit-btn">
+        <div className="flex items-center gap-3 pt-4 border-t border-white/5">
+          <button type="submit" disabled={loading} className="btn-mint" data-testid="loan-submit-btn">
             {loading ? "..." : <><i className="fa-solid fa-paper-plane"></i> {t({ hi: "अभी आवेदन करें", en: "Apply Now" })}</>}
           </button>
         </div>

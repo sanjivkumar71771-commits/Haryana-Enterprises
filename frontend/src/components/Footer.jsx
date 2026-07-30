@@ -2,80 +2,111 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { useI18n } from "@/context/I18nContext";
 import { S } from "@/lib/strings";
-import { FaPhone, FaWhatsapp, FaEnvelope, FaMapMarkerAlt, FaFacebook, FaInstagram, FaYoutube, FaTwitter } from "react-icons/fa";
+import { FaPhone, FaWhatsapp, FaEnvelope, FaMapMarkerAlt, FaFacebook, FaInstagram, FaYoutube, FaTwitter, FaClock, FaBell, FaLink } from "react-icons/fa";
 
 const Footer = () => {
   const { t, lang } = useI18n();
   return (
-    <footer className="footer mt-10" data-testid="site-footer">
-      <div className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-1 md:grid-cols-4 gap-8">
-        <div>
-          <div className="flex items-start gap-3 mb-3">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/55/Emblem_of_India.svg/120px-Emblem_of_India.svg.png" alt="Emblem" className="w-14 h-14 object-contain bg-white/10 p-1 rounded" />
-            <div>
-              <div className="text-white font-bold text-base">{t(S.brand)}</div>
-              <div className="text-xs opacity-80 mt-1">{t(S.tagline)}</div>
+    <footer className="mt-16" data-testid="site-footer">
+      {/* Info bar (like the deployed screenshot) */}
+      <div className="info-bar">
+        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-5 gap-6">
+          <div className="info-bar-item" data-testid="info-office-hours">
+            <h5><FaClock className="text-emerald-400" /> {lang === "hi" ? "कार्यालय समय" : "Office Hours"}</h5>
+            <p>{lang === "hi" ? "सोम–शनि · सुबह 9 – शाम 7" : "Mon–Sat · 9:00 AM – 7:00 PM"}</p>
+          </div>
+          <div className="info-bar-item" data-testid="info-helpline">
+            <h5><FaPhone className="text-emerald-400" /> {lang === "hi" ? "हेल्पलाइन" : "Helpline"}</h5>
+            <div className="flex flex-wrap items-center">
+              <a href="tel:8167862016" className="chip" data-testid="helpline-1">8167862016</a>
+              <a href="https://wa.me/918168762016" target="_blank" rel="noreferrer" className="chip chip-wa" data-testid="helpline-wa"><FaWhatsapp /> 8168762016</a>
             </div>
           </div>
-          <p className="text-xs opacity-85 mt-2 leading-relaxed">
-            {t({
-              hi: "PM सूर्य घर, रूफटॉप सोलर व लोन सेवाओं के लिए सिरसा का विश्वसनीय भागीदार। MNRE अनुमोदित।",
-              en: "Sirsa's trusted partner for PM Surya Ghar, Rooftop Solar and loan services. MNRE-approved.",
-            })}
-          </p>
-        </div>
-
-        <div>
-          <h4>{t({ hi: "त्वरित लिंक्स", en: "Quick Links" })}</h4>
-          <ul className="space-y-1.5 text-sm mt-3">
-            <li><Link to="/about">» {t(S.nav.about)}</Link></li>
-            <li><Link to="/services">» {t(S.nav.services)}</Link></li>
-            <li><Link to="/solar/apply">» {t(S.nav.solar)}</Link></li>
-            <li><Link to="/loan/apply">» {t(S.nav.loan)}</Link></li>
-            <li><Link to="/status">» {t({ hi: "स्टेटस ट्रैक करें", en: "Track Status" })}</Link></li>
-          </ul>
-        </div>
-
-        <div>
-          <h4>{t({ hi: "संसाधन", en: "Resources" })}</h4>
-          <ul className="space-y-1.5 text-sm mt-3">
-            <li><Link to="/notices">» {t(S.nav.notices)}</Link></li>
-            <li><Link to="/downloads">» {t(S.nav.downloads)}</Link></li>
-            <li><Link to="/gallery">» {t(S.nav.gallery)}</Link></li>
-            <li><Link to="/faq">» {t(S.nav.faq)}</Link></li>
-            <li><a href="https://mnre.gov.in" target="_blank" rel="noreferrer">» MNRE Portal</a></li>
-            <li><a href="https://pmsuryaghar.gov.in" target="_blank" rel="noreferrer">» PM Surya Ghar</a></li>
-          </ul>
-        </div>
-
-        <div>
-          <h4>{t({ hi: "संपर्क करें", en: "Contact Us" })}</h4>
-          <ul className="space-y-2 text-sm mt-3">
-            <li className="flex items-start gap-2"><FaMapMarkerAlt className="mt-1 text-orange-400 shrink-0" /> <span>200 Mtr From Bus Stand, Begu–Bhadra Road, Kagdana, Sirsa, Haryana</span></li>
-            <li className="flex items-center gap-2"><FaPhone className="text-orange-400" /> <a href="tel:8167862016">8167862016</a></li>
-            <li className="flex items-center gap-2"><FaWhatsapp className="text-orange-400" /> <a href="https://wa.me/918168762016" target="_blank" rel="noreferrer">8168762016</a></li>
-            <li className="flex items-start gap-2"><FaEnvelope className="mt-1 text-orange-400 shrink-0" /> <a href="mailto:haryanaenterpriseskagdana@gmail.com" className="break-all">haryanaenterpriseskagdana@gmail.com</a></li>
-          </ul>
-          <div className="flex items-center gap-3 mt-4 text-lg">
-            <a href="#" aria-label="Facebook" className="hover:!text-orange-400"><FaFacebook /></a>
-            <a href="#" aria-label="Twitter/X" className="hover:!text-orange-400"><FaTwitter /></a>
-            <a href="#" aria-label="Instagram" className="hover:!text-orange-400"><FaInstagram /></a>
-            <a href="#" aria-label="YouTube" className="hover:!text-orange-400"><FaYoutube /></a>
+          <div className="info-bar-item" data-testid="info-last-update">
+            <h5><FaBell className="text-emerald-400" /> {lang === "hi" ? "अंतिम अपडेट" : "Last Update"}</h5>
+            <p>30 Jul, 2026 · 07:00 IST</p>
+          </div>
+          <div className="info-bar-item" data-testid="info-social">
+            <h5><FaLink className="text-emerald-400" /> {lang === "hi" ? "जुड़े रहें" : "Stay Connected"}</h5>
+            <div className="flex gap-2 mt-1">
+              <a href="#" className="social-icon" aria-label="Twitter/X"><FaTwitter /></a>
+              <a href="#" className="social-icon" aria-label="Facebook"><FaFacebook /></a>
+              <a href="#" className="social-icon" aria-label="Instagram"><FaInstagram /></a>
+              <a href="#" className="social-icon" aria-label="YouTube"><FaYoutube /></a>
+            </div>
+          </div>
+          <div className="info-bar-item text-right" data-testid="info-version">
+            <h5 className="justify-end"><span className="text-emerald-400">v</span> Version</h5>
+            <p>2.5.1 · <span className="chip !bg-emerald-500/15 !border-emerald-500/40 !text-emerald-300">Stable</span></p>
           </div>
         </div>
       </div>
 
-      {/* Bottom bar */}
-      <div className="border-t border-white/10 bg-black/20">
-        <div className="max-w-7xl mx-auto px-4 py-3 text-xs opacity-90 flex flex-wrap items-center justify-between gap-2">
-          <span>© {new Date().getFullYear()} {t(S.brand)}. {t({ hi: "सर्वाधिकार सुरक्षित।", en: "All rights reserved." })}</span>
-          <span>{t({ hi: "इस साइट के सामग्री का स्वामित्व हरियाणा एंटरप्राइजेज के पास है।", en: "Content owned by Haryana Enterprises." })}</span>
-        </div>
-      </div>
+      {/* Main footer */}
+      <div className="bg-[#070c0a] border-t border-white/5">
+        <div className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div>
+            <div className="flex items-start gap-3 mb-4">
+              <div className="brand-emblem">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/55/Emblem_of_India.svg/120px-Emblem_of_India.svg.png" alt="Emblem" className="w-9 h-9 object-contain" style={{ filter: "brightness(1.3)" }} />
+              </div>
+              <div>
+                <div className="font-display text-lg font-bold text-white">{t(S.brand)}</div>
+                <div className="text-[10px] text-slate-500 tracking-widest uppercase font-semibold mt-0.5">Solar · Subsidy · Loan · Installation</div>
+              </div>
+            </div>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              {t({
+                hi: "सिरसा जिले का MNRE-अनुमोदित सोलर एवं वित्तीय सेवा प्रदाता। PM सूर्य घर योजना का पंजीकृत भागीदार।",
+                en: "Sirsa's MNRE-approved solar & finance provider. Registered partner for PM Surya Ghar Scheme.",
+              })}
+            </p>
+          </div>
 
-      {/* Tricolor bottom */}
-      <div className="tricolor-strip">
-        <div className="b1"></div><div className="b2"></div><div className="b3"></div>
+          <div>
+            <div className="section-eyebrow">Quick Links</div>
+            <ul className="space-y-2 text-sm mt-2">
+              <li><Link to="/about" className="text-slate-300 hover:text-emerald-400">→ {t(S.nav.about)}</Link></li>
+              <li><Link to="/services" className="text-slate-300 hover:text-emerald-400">→ {t(S.nav.services)}</Link></li>
+              <li><Link to="/solar/apply" className="text-slate-300 hover:text-emerald-400">→ {t(S.nav.solar)}</Link></li>
+              <li><Link to="/loan/apply" className="text-slate-300 hover:text-emerald-400">→ {t(S.nav.loan)}</Link></li>
+              <li><Link to="/status" className="text-slate-300 hover:text-emerald-400">→ {t({ hi: "स्टेटस ट्रैक करें", en: "Track Status" })}</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <div className="section-eyebrow">Resources</div>
+            <ul className="space-y-2 text-sm mt-2">
+              <li><Link to="/notices" className="text-slate-300 hover:text-emerald-400">→ {t(S.nav.notices)}</Link></li>
+              <li><Link to="/downloads" className="text-slate-300 hover:text-emerald-400">→ {t(S.nav.downloads)}</Link></li>
+              <li><Link to="/gallery" className="text-slate-300 hover:text-emerald-400">→ {t(S.nav.gallery)}</Link></li>
+              <li><Link to="/faq" className="text-slate-300 hover:text-emerald-400">→ {t(S.nav.faq)}</Link></li>
+              <li><a href="https://pmsuryaghar.gov.in" target="_blank" rel="noreferrer" className="text-slate-300 hover:text-emerald-400">→ PM Surya Ghar Portal ↗</a></li>
+              <li><a href="https://mnre.gov.in" target="_blank" rel="noreferrer" className="text-slate-300 hover:text-emerald-400">→ MNRE Official ↗</a></li>
+            </ul>
+          </div>
+
+          <div>
+            <div className="section-eyebrow">Contact</div>
+            <ul className="space-y-2.5 text-sm mt-2">
+              <li className="flex items-start gap-2 text-slate-300"><FaMapMarkerAlt className="mt-1 text-amber-400 shrink-0" /> <span>200 Mtr From Bus Stand, Begu–Bhadra Road, Kagdana, Sirsa, Haryana</span></li>
+              <li className="flex items-center gap-2 text-slate-300"><FaPhone className="text-amber-400" /> <a href="tel:8167862016" className="hover:text-emerald-400">8167862016</a></li>
+              <li className="flex items-center gap-2 text-slate-300"><FaWhatsapp className="text-emerald-400" /> <a href="https://wa.me/918168762016" target="_blank" rel="noreferrer" className="hover:text-emerald-400">8168762016</a></li>
+              <li className="flex items-start gap-2 text-slate-300"><FaEnvelope className="mt-1 text-amber-400 shrink-0" /> <a href="mailto:haryanaenterpriseskagdana@gmail.com" className="break-all hover:text-emerald-400">haryanaenterpriseskagdana@gmail.com</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="border-t border-white/5">
+          <div className="max-w-7xl mx-auto px-4 py-4 text-xs text-slate-500 flex flex-wrap items-center justify-between gap-2">
+            <span>© {new Date().getFullYear()} {t(S.brand)}. {t({ hi: "सर्वाधिकार सुरक्षित।", en: "All rights reserved." })}</span>
+            <span className="flex items-center gap-3">
+              <span>Secure · Reliable · Scalable</span>
+              <span className="w-1 h-1 rounded-full bg-slate-600"></span>
+              <span>Visitors: 12,453</span>
+            </span>
+          </div>
+        </div>
       </div>
     </footer>
   );
