@@ -99,21 +99,12 @@ def test_logout_clears_cookies():
     assert not s.cookies.get("access_token")
 
 
-def test_google_auth_stub():
+def test_google_auth_stub_removed():
+    """The demo /auth/google stub was intentionally removed in favor of /auth/session.
+    Verify it no longer exists (returns 404 or 405)."""
     s = requests.Session()
-    email = f"gtest_{uuid.uuid4().hex[:8]}@example.com"
-    r = s.post(f"{API}/auth/google", json={
-        "email": email, "name": "TEST G", "picture": "http://x/y.png", "google_id": "gid-123"
-    }, timeout=30)
-    assert r.status_code == 200, r.text
-    data = r.json()
-    assert data["user"]["email"] == email
-    assert data["user"]["auth_provider"] == "google"
-    # login again with same google should update, not error
-    r2 = s.post(f"{API}/auth/google", json={
-        "email": email, "name": "TEST G", "picture": "http://x/z.png", "google_id": "gid-123"
-    }, timeout=30)
-    assert r2.status_code == 200
+    r = s.post(f"{API}/auth/google", json={"email": "x@x.com", "name": "x"}, timeout=15)
+    assert r.status_code in (404, 405), f"Expected 404/405, got {r.status_code}"
 
 
 def test_bcrypt_hash_format():

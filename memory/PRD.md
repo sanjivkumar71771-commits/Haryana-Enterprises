@@ -1,77 +1,62 @@
-# HARYANA ENTERPRISES — Product Requirements Document (PRD)
+# HARYANA ENTERPRISES — PRD
 
-## Original Problem Statement
-Build a full-stack website + application system for **HARYANA ENTERPRISES** (Kagdana, Sirsa, Haryana), a solar & loan services provider, with the look and feel of https://ekharid.haryanafood.gov.in — a government-style Haryana e-services portal. Bilingual Hindi/English. Modules requested: Website, Solar Module (PM Surya Ghar, Rooftop Solar, Subsidy Info, Installation), Loan Module (Application, Status Tracking, Document Upload), User Panel, Admin Panel.
+## Business
+- HARYANA ENTERPRISES · 200 Mtr From Bus Stand, Begu–Bhadra Road, Kagdana, Sirsa, Haryana
+- Phone 8167862016 · WhatsApp 8168762016 · haryanaenterpriseskagdana@gmail.com
 
-## Business Info (baked in)
-- **Name:** HARYANA ENTERPRISES
-- **Address:** 200 Mtr From Bus Stand, Begu–Bhadra Road, Kagdana, Sirsa, Haryana
-- **Phone:** 8167862016   **WhatsApp:** 8168762016
-- **Email:** haryanaenterpriseskagdana@gmail.com
+## Stack (as-built)
+- React 19 + Tailwind + shadcn + AOS + FontAwesome + jsPDF (client-side PDF)
+- FastAPI + Motor (async MongoDB) + bcrypt + PyJWT + httpx (Emergent OAuth)
+- MongoDB — `haryana_enterprises` DB
+- Auth: dual — JWT httpOnly cookies for email/password + session_token cookies for Emergent Google OAuth
 
-## Tech Stack (as-built, replacing Laravel per platform constraint)
-- Frontend: React 19 + Tailwind + shadcn + AOS + FontAwesome + react-icons + react-fast-marquee + jsPDF
-- Backend: FastAPI + Motor (MongoDB async) + bcrypt + PyJWT
-- Database: MongoDB (`haryana_enterprises` DB)
-- Auth: JWT httpOnly cookies + demo Google login stub
-- PDF: client-side jsPDF + jspdf-autotable
-- Language: Bilingual (Hindi / English) via I18nContext toggle in top bar
+## Implemented — Iteration 3 (30 Jul 2026) — Google OAuth + Admin + Calculator
+### Google OAuth (Emergent-managed, no more demo stub)
+- Backend: POST `/api/auth/session` calls `https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data` and upserts user by email, stores session_token in `user_sessions` with 7-day expiry, sets httpOnly session_token cookie
+- Auth helper now checks session_token OR JWT access_token
+- Frontend: AuthCallback route (detected synchronously via `location.hash`) exchanges `session_id` and lands on /dashboard
+- Login page "Continue with Google" button redirects to `https://auth.emergentagent.com/?redirect=<origin>/dashboard`
+- AuthContext skips /auth/me when returning from OAuth callback
 
-## User Personas
-- **Home Owner** — wants rooftop solar / PM Surya Ghar subsidy
-- **Farmer** — KUSUM / agri loan queries
-- **Business Owner** — commercial solar + business loan
-- **Registered Applicant** — tracks status in dashboard, downloads PDF acknowledgment
+### Admin Panel
+- Backend: all routes gated by `require_admin` dependency
+  - GET `/api/admin/stats` — user, solar, loan, contact counts + pending/approved breakdown
+  - GET `/api/admin/users` — full user list (no password_hash)
+  - GET `/api/admin/solar` and `/api/admin/loan` — all applications
+  - GET `/api/admin/contacts` — contact messages
+  - PATCH `/api/admin/solar/{ref_no}/status` and `/api/admin/loan/{ref_no}/status` — update status (submitted/under_review/approved/rejected)
+  - POST `/api/admin/notices` and DELETE `/api/admin/notices/{id}` — notice CMS
+- Frontend: `/admin` route with tabs (Overview / Users / Solar / Loan / Contacts / Notices), stats cards, editable status dropdowns, notice CMS form
 
-## Core Requirements (Static)
-- Government-portal look: tri-band strip, top info bar, sticky navbar, hero slider, scrolling notice marquee, quick services, latest updates, download forms, stats strip, testimonials, CTA, footer
-- Bilingual toggle from top bar
-- User can submit Solar / Loan application (public — no login required)
-- Authenticated users see all their applications in dashboard with PDF download
-- Public status lookup by ref no.
+### Solar Savings Calculator
+- Live widget on Home page with sliders (monthly bill + roof area)
+- Computes: recommended kW, cost, PM Surya Ghar subsidy (₹30k/60k/78k slabs), net investment, monthly & yearly savings, payback years, 25-year lifetime savings, CO₂ reduction
+- Direct CTA to Solar Apply
 
-## Implemented (v1.1 — 30 Jul 2026) — Design overhaul to match Haryana NIC portal
-- Redesigned entire chrome to match https://haryanafood.gov.in / ekharid.haryanafood.gov.in visual language:
-  - Accessibility strip (Skip to content, Screen Reader, Sitemap, font A-/A/A+, dark theme toggle, हिंदी/English, Login/Register)
-  - Emblem header with Ashoka national emblem + brand + toll-free number + PM Surya Ghar tricolor badge
-  - Tricolor accent strips (saffron/white/green)
-  - Sticky green navigation bar with orange bottom border, uppercase links
-  - Red "Latest News" marquee tag with animated NEW badges
-  - Two-column layout: main content + right sidebar (Notice Board, Quick Links, Downloads, Consultation)
-  - Tabbed panel (Latest Updates / Helpline / News/Press)
-  - NIC-style panels with green headers and gradient
-  - Partner logos strip (Digital India / MyGov / India.gov.in / PMIndia)
-  - Tricolor footer band, dark green footer
+### User-id migration
+- All users now have `user_id` UUID field (new pattern from Emergent playbook)
+- Legacy users backfilled at startup
+- get_current_user accepts both ObjectId sub and user_id sub
 
-## Implemented (v1 — 30 Jul 2026)
-### Backend endpoints (`/api/*`)
-- Auth: `/auth/register`, `/auth/login`, `/auth/logout`, `/auth/me`, `/auth/google` (demo)
-- Solar: `/solar/apply`, `/solar/my`
-- Loan:  `/loan/apply`, `/loan/my`
-- Public: `/contact`, `/notices`, `/faqs`, `/downloads`, `/status/{ref_no}`
-- Auto-seed: admin, test user, 5 notices, 5 FAQs, 4 downloads
+## Testing
+- Backend: **40/40 tests passing** (iteration_2 report + updated tests)
+- All admin auth gates verified (401 without auth, 403 for non-admin, 200 for admin)
+- User_id UUID flow end-to-end verified
+- Logout clears both JWT and session_token cookies + session db record
 
-### Frontend pages
-- `/` Home (hero, notice ticker, quick services, stats, latest updates, downloads, why-choose, testimonials, CTA)
-- `/about`, `/services`, `/gallery`, `/notices`, `/downloads`, `/faq`, `/contact`
-- `/solar/apply`, `/loan/apply` (with EMI calculator)
-- `/status?ref=` public tracking
-- `/login`, `/register` (JWT + demo Google button)
-- `/dashboard` (protected) — stats cards, tabbed Solar/Loan tables, jsPDF download per application
+## Test Credentials
+- Admin: `admin@haryanaenterprises.com` / `Admin@123` (role=admin)
+- User: `user@test.com` / `Test@123` (role=user)
+- Google: real Emergent Google Auth flow — no test credentials
 
-### Testing
-- Backend: 24/24 tests passed (iteration_1.json)
-
-## Deferred / Backlog
-- **P0** — Real Google OAuth (currently a demo stub posting fixed profile)
-- **P0** — Admin Panel (dashboard, users, applications list, notices/gallery CMS, reports)
-- **P1** — Real SMTP email notifications on submission (Resend/SendGrid)
-- **P1** — Document upload for loan applications (Aadhaar / PAN / bank statement)
-- **P1** — Dark mode toggle
-- **P2** — Chart.js analytics widgets on admin dashboard
-- **P2** — WhatsApp OTP or SMS notifications (Twilio)
-- **P2** — Password reset via email
-- **P2** — Brute-force lockout on `/auth/login`
-
-## Seeded Credentials
-See `/app/memory/test_credentials.md`.
+## Backlog
+### P1
+- SMTP email confirmations on application submission (Resend/SendGrid)
+- Document upload for loan/solar applications (Aadhaar/PAN/bank statement)
+- Chart.js analytics charts on admin dashboard
+- Password reset email flow
+### P2
+- WhatsApp OTP / SMS notifications (Twilio)
+- Brute-force lockout on `/auth/login`
+- CSV / Excel export from admin tables
+- Chatbot / consultation booking widget
