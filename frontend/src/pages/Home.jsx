@@ -12,8 +12,9 @@ import {
   FaTasks, FaCheckCircle, FaChevronRight, FaChevronDown, FaEnvelope, FaLock,
   FaShieldAlt, FaEye, FaEyeSlash, FaBullhorn, FaAndroid, FaApple, FaFingerprint,
   FaBolt, FaHome, FaAward, FaHeadset, FaFileDownload, FaImages, FaStar,
-  FaSun, FaBoxes, FaMoneyCheckAlt, FaHandshake
+  FaSun, FaBoxes, FaMoneyCheckAlt, FaHandshake, FaSeedling
 } from "react-icons/fa";
+import { FaIdCard } from "react-icons/fa";
 
 const flowSteps = [
   { icon: FaSearchLocation, hi: "पूछताछ", en: "Enquiry" },
@@ -26,10 +27,10 @@ const flowSteps = [
 ];
 
 const services = [
-  { icon: FaSolarPanel, hi: "PM सूर्य घर योजना", en: "PM Surya Ghar Scheme", desc_hi: "मुफ्त बिजली + ₹78,000 सब्सिडी", desc_en: "Free electricity + ₹78,000 subsidy", to: "/solar/apply?type=pm_surya_ghar", accent: "emerald" },
-  { icon: FaHome, hi: "रूफटॉप सोलर", en: "Rooftop Solar", desc_hi: "1–10 kW आवासीय व व्यावसायिक", desc_en: "1–10 kW residential & commercial", to: "/solar/apply?type=rooftop", accent: "amber" },
+  { icon: FaSolarPanel, hi: "PM सूर्य घर योजना", en: "PM Surya Ghar Scheme", desc_hi: "मुफ्त बिजली + ₹78,000 – ₹1,10,000 सब्सिडी", desc_en: "Free electricity + ₹78,000–₹1,10,000 subsidy", to: "/solar/apply?type=pm_surya_ghar", accent: "emerald" },
+  { icon: FaSeedling, hi: "डिग्गी / फव्वारा / ड्रिप", en: "Diggi / Sprinkler / Drip", desc_hi: "70%–85% सब्सिडी · P23, P288 सफेदा", desc_en: "70%–85% subsidy · P23, P288 Poplar", to: "/irrigation", accent: "amber" },
   { icon: FaMoneyBillWave, hi: "सोलर / बिज़नेस लोन", en: "Solar / Business Loan", desc_hi: "7.5% ब्याज से · 5–7 दिन मंज़ूरी", desc_en: "From 7.5% · Approved in 5–7 days", to: "/loan/apply", accent: "emerald" },
-  { icon: FaTasks, hi: "स्टेटस ट्रैकिंग", en: "Status Tracking", desc_hi: "अपने आवेदन की स्थिति देखें", desc_en: "Track your application status", to: "/status", accent: "amber" },
+  { icon: FaIdCard, hi: "CSC डिजिटल सेवाएँ", en: "CSC Digital Services", desc_hi: "आधार, PAN, बीमा, बिल — 47+ सेवाएँ", desc_en: "Aadhaar, PAN, insurance, bills — 47+ services", to: "/csc", accent: "amber" },
 ];
 
 const HeroSignIn = () => {

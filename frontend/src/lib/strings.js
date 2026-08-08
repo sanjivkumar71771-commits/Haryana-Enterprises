@@ -8,6 +8,8 @@ export const S = {
     services: { hi: "सेवाएँ", en: "Services" },
     solar: { hi: "सोलर", en: "Solar" },
     loan: { hi: "लोन", en: "Loan" },
+    csc: { hi: "CSC सेवाएँ", en: "CSC Services" },
+    irrigation: { hi: "सिंचाई / कृषि", en: "Irrigation / Farm" },
     gallery: { hi: "गैलरी", en: "Gallery" },
     notices: { hi: "सूचना बोर्ड", en: "Notices" },
     downloads: { hi: "डाउनलोड", en: "Downloads" },

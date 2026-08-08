@@ -6,11 +6,12 @@ import { useI18n } from "@/context/I18nContext";
 import { toast } from "sonner";
 import {
   FaChartLine, FaUsers, FaSolarPanel, FaMoneyBillWave, FaEnvelope, FaBullhorn,
-  FaTrash, FaPlus, FaFilePdf, FaCheckCircle, FaClock, FaTimesCircle, FaEye, FaChartPie
+  FaTrash, FaPlus, FaFilePdf, FaCheckCircle, FaClock, FaTimesCircle, FaEye, FaChartPie, FaIdCard, FaSeedling
 } from "react-icons/fa";
 import AdminAnalytics from "@/components/AdminAnalytics";
 
 const STATUS_OPTS = ["submitted", "under_review", "approved", "rejected"];
+const CSC_STATUS_OPTS = ["submitted", "under_review", "approved", "rejected", "completed"];
 
 const AdminPanel = () => {
   const { user, ready } = useAuth();
@@ -22,20 +23,24 @@ const AdminPanel = () => {
   const [loan, setLoan] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [notices, setNotices] = useState([]);
+  const [csc, setCsc] = useState([]);
+  const [irrigation, setIrrigation] = useState([]);
   const [newNotice, setNewNotice] = useState({ title_hi: "", title_en: "", type: "info" });
 
   const loadAll = async () => {
     try {
-      const [s, u, so, lo, co, no] = await Promise.all([
+      const [s, u, so, lo, co, no, cs, ir] = await Promise.all([
         api.get("/admin/stats"),
         api.get("/admin/users"),
         api.get("/admin/solar"),
         api.get("/admin/loan"),
         api.get("/admin/contacts"),
         api.get("/notices"),
+        api.get("/admin/csc"),
+        api.get("/admin/irrigation"),
       ]);
       setStats(s.data); setUsers(u.data); setSolar(so.data);
-      setLoan(lo.data); setContacts(co.data); setNotices(no.data);
+      setLoan(lo.data); setContacts(co.data); setNotices(no.data); setCsc(cs.data); setIrrigation(ir.data);
     } catch (e) {
       if (e.response?.status !== 401 && e.response?.status !== 403) toast.error("Failed to load admin data");
     }
@@ -88,6 +93,8 @@ const AdminPanel = () => {
     { id: "users", label: lang === "hi" ? "यूज़र्स" : "Users", icon: FaUsers },
     { id: "solar", label: lang === "hi" ? "सोलर" : "Solar", icon: FaSolarPanel },
     { id: "loan", label: lang === "hi" ? "लोन" : "Loan", icon: FaMoneyBillWave },
+    { id: "csc", label: lang === "hi" ? "CSC" : "CSC", icon: FaIdCard },
+    { id: "irrigation", label: lang === "hi" ? "सिंचाई" : "Irrigation", icon: FaSeedling },
     { id: "contacts", label: lang === "hi" ? "संपर्क" : "Contacts", icon: FaEnvelope },
     { id: "notices", label: lang === "hi" ? "सूचनाएँ" : "Notices", icon: FaBullhorn },
   ];
@@ -210,6 +217,65 @@ const AdminPanel = () => {
                     </td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Irrigation */}
+      {tab === "irrigation" && (
+        <div className="glass p-4" data-testid="admin-irrigation-table">
+          <div className="table-wrap">
+            <table className="tbl">
+              <thead><tr><th>Ref No</th><th>Scheme</th><th>Name</th><th>Village</th><th>Land</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
+              <tbody>
+                {irrigation.map(a => (
+                  <tr key={a.id} data-testid={`admin-irrigation-row-${a.ref_no}`}>
+                    <td className="font-mono font-bold text-emerald-400">{a.ref_no}</td>
+                    <td>{lang === "hi" ? a.scheme_hi : a.scheme_en}</td>
+                    <td className="font-semibold text-white">{a.full_name}</td>
+                    <td>{a.village}, {a.district}</td>
+                    <td>{a.land_area_acre ? `${a.land_area_acre} acre` : "-"}</td>
+                    <td><span className={`badge ${a.status === "approved" || a.status === "completed" ? "badge-approved" : a.status === "rejected" ? "badge-rejected" : a.status === "under_review" ? "badge-review" : "badge-submitted"}`}>{a.status}</span></td>
+                    <td className="text-xs text-slate-400">{new Date(a.created_at).toLocaleDateString()}</td>
+                    <td>
+                      <select value={a.status} onChange={(e) => updateStatus("irrigation", a.ref_no, e.target.value)} className="input !py-1 !px-2 !text-xs" data-testid={`irr-status-select-${a.ref_no}`}>
+                        {CSC_STATUS_OPTS.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+                {irrigation.length === 0 && <tr><td colSpan={8} className="text-center text-slate-500 py-8">No irrigation applications yet.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* CSC Requests */}
+      {tab === "csc" && (
+        <div className="glass p-4" data-testid="admin-csc-table">
+          <div className="table-wrap">
+            <table className="tbl">
+              <thead><tr><th>Ref No</th><th>Service</th><th>Name</th><th>Phone</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
+              <tbody>
+                {csc.map(a => (
+                  <tr key={a.id} data-testid={`admin-csc-row-${a.ref_no}`}>
+                    <td className="font-mono font-bold text-emerald-400">{a.ref_no}</td>
+                    <td>{lang === "hi" ? a.service_hi : a.service_en}{a.custom_service ? ` — ${a.custom_service}` : ""}</td>
+                    <td className="font-semibold text-white">{a.full_name}</td>
+                    <td>{a.phone}</td>
+                    <td><span className={`badge ${a.status === "approved" || a.status === "completed" ? "badge-approved" : a.status === "rejected" ? "badge-rejected" : a.status === "under_review" ? "badge-review" : "badge-submitted"}`}>{a.status}</span></td>
+                    <td className="text-xs text-slate-400">{new Date(a.created_at).toLocaleDateString()}</td>
+                    <td>
+                      <select value={a.status} onChange={(e) => updateStatus("csc", a.ref_no, e.target.value)} className="input !py-1 !px-2 !text-xs" data-testid={`csc-status-select-${a.ref_no}`}>
+                        {CSC_STATUS_OPTS.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+                {csc.length === 0 && <tr><td colSpan={8} className="text-center text-slate-500 py-8">No CSC requests yet.</td></tr>}
               </tbody>
             </table>
           </div>

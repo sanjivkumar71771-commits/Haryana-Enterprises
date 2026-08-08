@@ -31,6 +31,7 @@ from auth import (
     require_admin,
 )
 from emails import send_email, render_confirmation, render_reset
+from csc_services import CSC_CATEGORIES, all_service_ids, find_service
 
 # MongoDB
 mongo_url = os.environ["MONGO_URL"]
@@ -112,6 +113,36 @@ class NoticeIn(BaseModel):
     title_hi: str
     title_en: str
     type: str = "info"
+
+
+class CSCRequestIn(BaseModel):
+    service_id: str
+    full_name: str
+    email: EmailStr
+    phone: str
+    address: Optional[str] = None
+    aadhaar_number: Optional[str] = None
+    remarks: Optional[str] = None
+    custom_service: Optional[str] = None  # for 'other_custom'
+
+
+class IrrigationApplicationIn(BaseModel):
+    scheme_type: str  # 'diggi' | 'sprinkler' | 'drip' | 'poplar' | 'other'
+    full_name: str
+    email: EmailStr
+    phone: str
+    village: str
+    tehsil: Optional[str] = None
+    district: str = "Sirsa"
+    state: str = "Haryana"
+    pincode: Optional[str] = None
+    land_area_acre: Optional[float] = None
+    khasra_number: Optional[str] = None
+    aadhaar_number: Optional[str] = None
+    crops: Optional[str] = None
+    water_source: Optional[str] = None  # 'canal' | 'tubewell' | 'borewell' | 'other'
+    category: Optional[str] = None      # 'general' | 'sc' | 'st' | 'obc' | 'small' | 'marginal'
+    notes: Optional[str] = None
 
 
 class ForgotPasswordIn(BaseModel):
@@ -501,6 +532,173 @@ async def get_downloads():
     return [doc_public(i) for i in items]
 
 
+# ─────────── CSC Services ───────────
+@api.get("/csc/services")
+async def csc_services_list():
+    return CSC_CATEGORIES
+
+
+@api.post("/csc/apply")
+async def csc_apply(payload: CSCRequestIn, request: Request):
+    service, category = find_service(payload.service_id)
+    if not service:
+        raise HTTPException(status_code=400, detail="Unknown CSC service")
+
+    doc = payload.model_dump()
+    doc["created_at"] = datetime.now(timezone.utc)
+    doc["status"] = "submitted"
+    doc["ref_no"] = f"CSC-{uuid.uuid4().hex[:8].upper()}"
+    doc["service_hi"] = service["hi"]
+    doc["service_en"] = service["en"]
+    doc["category_id"] = category["id"]
+    doc["fee"] = service["fee"]
+
+    u = await _optional_user(request)
+    doc["user_id"] = u["id"] if u else None
+
+    res = await db.csc_requests.insert_one(doc)
+    doc["_id"] = str(res.inserted_id)
+
+    # Email confirmation
+    try:
+        extra = [
+            f"Service: {service['en']}",
+            (f"Custom: {payload.custom_service}" if payload.custom_service else None),
+        ]
+        subject = f"[Haryana Enterprises] CSC Request — {doc['ref_no']}"
+        html = f"""
+        <div style="font-family: Arial; max-width:560px; margin:0 auto;">
+          <div style="background:#0e6b3a; color:#fff; padding:18px; text-align:center;">
+            <h2 style="margin:0;">HARYANA ENTERPRISES · CSC</h2>
+          </div>
+          <div style="padding:22px; background:#f7f9f8;">
+            <p>Hello <b>{payload.full_name}</b>,</p>
+            <p>Your CSC service request has been received.</p>
+            <div style="background:#fff; border-left:4px solid #f57c00; padding:12px 16px; margin:14px 0;">
+              <div style="font-size:11px; color:#888; text-transform:uppercase; letter-spacing:2px;">Reference</div>
+              <div style="font-size:22px; color:#0e6b3a; font-weight:700;">{doc['ref_no']}</div>
+              <div style="margin-top:6px; color:#333;">{service['en']}</div>
+            </div>
+            <p>Our CSC operator will contact you within 24 hours.</p>
+            <p style="color:#666; font-size:13px; margin-top:24px;">
+              — Team Haryana Enterprises · Kagdana, Sirsa · +91 8167862016
+            </p>
+          </div>
+        </div>
+        """
+        send_email(payload.email, subject, html)
+    except Exception as e:
+        log.warning(f"Failed to send CSC email: {e}")
+
+    return {"request": doc_public(doc)}
+
+
+@api.get("/csc/my")
+async def csc_my(user=Depends(get_current_user)):
+    apps = await db.csc_requests.find({"user_id": user["id"]}).sort("created_at", -1).to_list(500)
+    return [doc_public(a) for a in apps]
+
+
+@api.get("/admin/csc")
+async def admin_csc(_=Depends(require_admin)):
+    apps = await db.csc_requests.find({}).sort("created_at", -1).to_list(1000)
+    return [doc_public(a) for a in apps]
+
+
+@api.patch("/admin/csc/{ref_no}/status")
+async def admin_update_csc_status(ref_no: str, payload: StatusUpdateIn, _=Depends(require_admin)):
+    if payload.status not in ("submitted", "under_review", "approved", "rejected", "completed"):
+        raise HTTPException(status_code=400, detail="Invalid status")
+    res = await db.csc_requests.update_one({"ref_no": ref_no}, {"$set": {"status": payload.status}})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Not found")
+    return {"ok": True}
+
+
+# ─────────── Micro Irrigation / Farm services ───────────
+IRRIGATION_SCHEMES = {
+    "diggi":     {"hi": "डिग्गी (फार्म पॉण्ड)",        "en": "Diggi (Farm Pond)",              "subsidy": "70% – 85%"},
+    "sprinkler": {"hi": "फव्वारा सिंचाई प्रणाली",       "en": "Sprinkler Irrigation System",   "subsidy": "Up to 85%"},
+    "drip":      {"hi": "ड्रिप सिंचाई",                "en": "Drip Irrigation",                "subsidy": "Up to 85%"},
+    "poplar":    {"hi": "सफेदा (Poplar) बागवानी",     "en": "Poplar (Safeda) Plantation",     "subsidy": "P23, P288 varieties"},
+    "other":     {"hi": "अन्य कृषि योजना",             "en": "Other Farm Scheme",              "subsidy": "As applicable"},
+}
+
+
+@api.get("/irrigation/schemes")
+async def irrigation_schemes():
+    return IRRIGATION_SCHEMES
+
+
+@api.post("/irrigation/apply")
+async def irrigation_apply(payload: IrrigationApplicationIn, request: Request):
+    if payload.scheme_type not in IRRIGATION_SCHEMES:
+        raise HTTPException(status_code=400, detail="Unknown scheme type")
+    doc = payload.model_dump()
+    doc["created_at"] = datetime.now(timezone.utc)
+    doc["status"] = "submitted"
+    doc["ref_no"] = f"IRR-{uuid.uuid4().hex[:8].upper()}"
+    sch = IRRIGATION_SCHEMES[payload.scheme_type]
+    doc["scheme_hi"] = sch["hi"]
+    doc["scheme_en"] = sch["en"]
+
+    u = await _optional_user(request)
+    doc["user_id"] = u["id"] if u else None
+
+    res = await db.irrigation_applications.insert_one(doc)
+    doc["_id"] = str(res.inserted_id)
+
+    try:
+        subject = f"[Haryana Enterprises] Micro Irrigation Application — {doc['ref_no']}"
+        html = f"""
+        <div style="font-family:Arial; max-width:560px; margin:0 auto;">
+          <div style="background:#0e6b3a; color:#fff; padding:18px; text-align:center;">
+            <h2 style="margin:0;">HARYANA ENTERPRISES · Farm Services</h2>
+          </div>
+          <div style="padding:22px; background:#f7f9f8;">
+            <p>Hello <b>{payload.full_name}</b>,</p>
+            <p>Your application for <b>{sch['en']}</b> ({sch['hi']}) has been received. Subsidy applicable: <b>{sch['subsidy']}</b>.</p>
+            <div style="background:#fff; border-left:4px solid #f57c00; padding:12px 16px; margin:14px 0;">
+              <div style="font-size:11px; color:#888; text-transform:uppercase; letter-spacing:2px;">Reference</div>
+              <div style="font-size:22px; color:#0e6b3a; font-weight:700;">{doc['ref_no']}</div>
+            </div>
+            <p>Our field officer will contact you within 24 hours. Please keep Aadhaar, land papers (Jamabandi/Khasra) and bank passbook ready.</p>
+            <p style="color:#666; font-size:13px; margin-top:24px;">
+              — Team Haryana Enterprises · Kagdana, Sirsa
+              <br>Sanjay Fageria: 98136-64230 · Anoop Beniwal: 90974-10008
+            </p>
+          </div>
+        </div>
+        """
+        send_email(payload.email, subject, html)
+    except Exception as e:
+        log.warning(f"Failed to send irrigation email: {e}")
+
+    return {"application": doc_public(doc)}
+
+
+@api.get("/irrigation/my")
+async def irrigation_my(user=Depends(get_current_user)):
+    apps = await db.irrigation_applications.find({"user_id": user["id"]}).sort("created_at", -1).to_list(500)
+    return [doc_public(a) for a in apps]
+
+
+@api.get("/admin/irrigation")
+async def admin_irrigation(_=Depends(require_admin)):
+    apps = await db.irrigation_applications.find({}).sort("created_at", -1).to_list(1000)
+    return [doc_public(a) for a in apps]
+
+
+@api.patch("/admin/irrigation/{ref_no}/status")
+async def admin_update_irrigation_status(ref_no: str, payload: StatusUpdateIn, _=Depends(require_admin)):
+    if payload.status not in ("submitted", "under_review", "approved", "rejected", "completed"):
+        raise HTTPException(status_code=400, detail="Invalid status")
+    res = await db.irrigation_applications.update_one({"ref_no": ref_no}, {"$set": {"status": payload.status}})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Not found")
+    return {"ok": True}
+
+
 # ─────────── ADMIN ROUTES ───────────
 @api.get("/admin/stats")
 async def admin_stats(_=Depends(require_admin)):
@@ -508,9 +706,11 @@ async def admin_stats(_=Depends(require_admin)):
         "users": await db.users.count_documents({}),
         "solar_apps": await db.solar_applications.count_documents({}),
         "loan_apps": await db.loan_applications.count_documents({}),
+        "csc_requests": await db.csc_requests.count_documents({}),
         "contacts": await db.contacts.count_documents({}),
         "solar_pending": await db.solar_applications.count_documents({"status": "submitted"}),
         "loan_pending": await db.loan_applications.count_documents({"status": "submitted"}),
+        "csc_pending": await db.csc_requests.count_documents({"status": "submitted"}),
         "solar_approved": await db.solar_applications.count_documents({"status": "approved"}),
         "loan_approved": await db.loan_applications.count_documents({"status": "approved"}),
     }
@@ -648,6 +848,10 @@ async def startup():
     await db.user_sessions.create_index("expires_at")
     await db.solar_applications.create_index("ref_no", unique=True)
     await db.loan_applications.create_index("ref_no", unique=True)
+    await db.csc_requests.create_index("ref_no", unique=True)
+    await db.csc_requests.create_index("user_id")
+    await db.irrigation_applications.create_index("ref_no", unique=True)
+    await db.irrigation_applications.create_index("user_id")
     await db.password_reset_tokens.create_index("token", unique=True)
     await db.password_reset_tokens.create_index("expires_at", expireAfterSeconds=0)
     await db.uploads.create_index("user_id")
