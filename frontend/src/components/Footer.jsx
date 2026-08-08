@@ -17,10 +17,12 @@ const Footer = () => {
           </div>
           <div className="info-bar-item" data-testid="info-helpline">
             <h5><FaPhone className="text-emerald-400" /> {lang === "hi" ? "हेल्पलाइन" : "Helpline"}</h5>
-            <div className="flex flex-wrap items-center gap-1">
-              <a href="tel:8167862016" className="chip" data-testid="helpline-1">8167862016</a>
-              <a href="tel:9992120628" className="chip" data-testid="helpline-2">99921-20628</a>
-              <a href="https://wa.me/918168762016" target="_blank" rel="noreferrer" className="chip chip-wa" data-testid="helpline-wa"><FaWhatsapp /> 8168762016</a>
+            <div className="flex flex-col gap-1">
+              <div className="text-white text-sm font-semibold">Devender Saharan</div>
+              <div className="flex flex-wrap items-center gap-1">
+                <a href="tel:8168762016" className="chip" data-testid="helpline-1">8168762016</a>
+                <a href="https://wa.me/918168762016" target="_blank" rel="noreferrer" className="chip chip-wa" data-testid="helpline-wa"><FaWhatsapp /> WhatsApp</a>
+              </div>
             </div>
           </div>
           <div className="info-bar-item" data-testid="info-last-update">
