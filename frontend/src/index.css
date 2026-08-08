@@ -615,22 +615,155 @@ body {
 body.light-theme {
   --bg: #f7f9f8;
   --bg-2: #ffffff;
-  --panel: rgba(255, 255, 255, 0.7);
+  --panel: rgba(255, 255, 255, 0.78);
   --panel-solid: #ffffff;
   --border: rgba(0, 0, 0, 0.08);
-  --border-strong: rgba(0, 0, 0, 0.12);
+  --border-strong: rgba(0, 0, 0, 0.14);
   --text: #0f1613;
-  --text-dim: #4b5b56;
-  --muted: #6b7772;
+  --text-dim: #475569;
+  --muted: #64748b;
+  --emerald-soft: rgba(16, 185, 129, 0.08);
   background: #f7f9f8;
   color: #0f1613;
 }
 body.light-theme::-webkit-scrollbar-track { background: #e8ede9; }
 body.light-theme::-webkit-scrollbar-thumb { background: #cbd5cf; }
 
+/* Force text visibility in light mode */
+body.light-theme .text-white,
+body.light-theme .hero-title,
+body.light-theme .section-title,
+body.light-theme .signin-card h1,
+body.light-theme .signin-card h2,
+body.light-theme .signin-card h3,
+body.light-theme .font-display,
+body.light-theme .app-card-title,
+body.light-theme .gov-panel-header,
+body.light-theme .subnav-link.active,
+body.light-theme .glass h2,
+body.light-theme .glass h3,
+body.light-theme .glass-strong h2,
+body.light-theme .glass-strong h3,
+body.light-theme table.tbl th,
+body.light-theme table.tbl td { color: #0f1613 !important; }
+body.light-theme .text-slate-300,
+body.light-theme .text-slate-400,
+body.light-theme .text-slate-500,
+body.light-theme .app-card-sub { color: #475569 !important; }
+body.light-theme .hero-title .accent,
+body.light-theme .text-amber-400,
+body.light-theme .text-amber-300 { color: #b45309 !important; }
+body.light-theme .text-emerald-400,
+body.light-theme .text-emerald-300,
+body.light-theme .link-mint,
+body.light-theme .section-eyebrow { color: #047857 !important; }
+body.light-theme .subnav-link { color: #334155; }
+body.light-theme .subnav-link:hover { color: #047857; background: rgba(16,185,129,0.08); }
+body.light-theme .subnav-link.active { color: #047857; background: rgba(16,185,129,0.1); }
+
+/* Panels/cards for light mode */
+body.light-theme .glass,
+body.light-theme .glass-strong,
+body.light-theme .signin-card,
+body.light-theme .service-card,
+body.light-theme .svc-card,
+body.light-theme .app-card {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f1613;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+body.light-theme .top-strip,
+body.light-theme .subnav,
+body.light-theme .news-strip,
+body.light-theme .info-bar {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+body.light-theme .top-strip * { color: #0f1613; }
+body.light-theme .top-strip .status-pill { color: #047857; }
+body.light-theme .news-item { color: #334155; }
+body.light-theme .btn-ghost {
+  background: #f1f5f9 !important;
+  color: #0f1613 !important;
+  border-color: #cbd5e1 !important;
+}
+body.light-theme .btn-ghost:hover { background: #e2e8f0 !important; }
+body.light-theme .input {
+  background: #ffffff !important;
+  color: #0f1613 !important;
+  border-color: #cbd5e1 !important;
+}
+body.light-theme .input::placeholder { color: #94a3b8 !important; }
+body.light-theme .a11y-btn {
+  background: #ffffff !important;
+  color: #334155 !important;
+  border-color: #cbd5e1 !important;
+}
+body.light-theme .a11y-btn.active,
+body.light-theme .a11y-btn:hover { background: #d1fae5 !important; color: #047857 !important; }
+body.light-theme .chip { color: #047857; background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); }
+body.light-theme .table-wrap { border-color: #e2e8f0 !important; }
+body.light-theme .tbl { background: #ffffff; color: #0f1613; }
+body.light-theme .tbl tr:hover td { background: #f0fdf4; }
+body.light-theme .footer,
+body.light-theme .footer a { color: #cfe7d6; }
+body.light-theme .flow-panel { background: rgba(16,185,129,0.05); }
+body.light-theme .flow-step { color: #475569; }
+body.light-theme .category-pill { color: #b45309; background: rgba(251,191,36,0.15); border-color: rgba(251,191,36,0.4); }
+body.light-theme .signin-pill { background: rgba(16,185,129,0.12); color: #047857; border-color: rgba(16,185,129,0.4); }
+
 /* Font sizes for a11y */
 body.font-large { font-size: 16.5px; }
 body.font-small { font-size: 13px; }
+
+/* ─────────── Processing loader (Ekharid-style) ─────────── */
+.proc-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(10,15,13,0.55);
+  backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  animation: fadeIn 0.2s ease-out;
+}
+body.light-theme .proc-overlay { background: rgba(15,22,19,0.35); }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.proc-card {
+  background: linear-gradient(160deg, #0f2921 0%, #0a1f19 100%);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px;
+  padding: 2.2rem 2.4rem;
+  min-width: 260px;
+  text-align: center;
+  box-shadow: 0 24px 60px -12px rgba(0,0,0,0.6);
+}
+.proc-icon-wrap {
+  width: 56px; height: 56px; margin: 0 auto 1rem;
+  border-radius: 50%;
+  background: rgba(16,185,129,0.15);
+  border: 1px solid rgba(16,185,129,0.4);
+  display: flex; align-items: center; justify-content: center;
+  color: #34d399; font-size: 1.4rem;
+  animation: spinIcon 2s linear infinite;
+}
+@keyframes spinIcon { to { transform: rotate(360deg); } }
+.proc-label {
+  color: #34d399; font-size: 11px; letter-spacing: 0.3em;
+  font-weight: 700; text-transform: uppercase; margin-bottom: 0.5rem;
+}
+.proc-title { color: #fff; font-size: 1.15rem; font-weight: 700; margin-bottom: 0.2rem; }
+.proc-sub { color: #94a3b8; font-size: 0.85rem; margin-bottom: 1.1rem; }
+.proc-bar {
+  height: 4px; background: rgba(255,255,255,0.06); border-radius: 4px;
+  overflow: hidden; position: relative; margin-bottom: 0.4rem;
+}
+.proc-bar::before {
+  content: ""; position: absolute; inset: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, #fbbf24, #34d399, transparent);
+  animation: procSlide 1.6s linear infinite;
+}
+@keyframes procSlide { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
+.proc-percent { color: #34d399; font-weight: 700; font-size: 0.85rem; }
 
 /* Toaster theme override */
 [data-sonner-toaster] { --normal-bg: #131b18; --normal-text: #e6ece9; --normal-border: rgba(255,255,255,0.12); }

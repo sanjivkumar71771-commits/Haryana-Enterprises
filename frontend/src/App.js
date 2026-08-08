@@ -9,6 +9,7 @@ import { I18nProvider } from "@/context/I18nContext";
 
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import ProcessingLoader from "@/components/ProcessingLoader";
 
 import Home from "@/pages/Home";
 import About from "@/pages/About";
@@ -95,6 +96,7 @@ function AppInner() {
     <div className="App">
       <BrowserRouter>
         <ScrollToTop />
+        <ProcessingLoader />
         <Header />
         <main className="flex-1">
           <AppRouter />
