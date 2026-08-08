@@ -3,6 +3,7 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useI18n } from "@/context/I18nContext";
 import { S } from "@/lib/strings";
+import Logo from "@/components/Logo";
 import {
   FaSolarPanel, FaMoneyBillWave, FaBars, FaTimes,
   FaTachometerAlt, FaFileDownload, FaHeadset, FaHome, FaInfoCircle,
@@ -59,9 +60,8 @@ const Header = () => {
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-4 flex-wrap">
           {/* Brand */}
           <Link to="/" className="flex items-center gap-3 shrink-0" data-testid="brand-link">
-            <div className="brand-emblem">
-              <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/55/Emblem_of_India.svg/120px-Emblem_of_India.svg.png"
-                alt="Emblem" className="w-9 h-9 object-contain" style={{ filter: "brightness(1.3)" }} />
+            <div className="brand-emblem !p-0 overflow-hidden">
+              <Logo size={44} />
             </div>
             <div className="leading-tight">
               <div className="font-display text-xl font-extrabold text-white tracking-tight">

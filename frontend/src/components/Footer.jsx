@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { useI18n } from "@/context/I18nContext";
 import { S } from "@/lib/strings";
+import Logo from "@/components/Logo";
 import { FaPhone, FaWhatsapp, FaEnvelope, FaMapMarkerAlt, FaFacebook, FaInstagram, FaYoutube, FaTwitter, FaClock, FaBell, FaLink } from "react-icons/fa";
 
 const Footer = () => {
@@ -50,8 +51,8 @@ const Footer = () => {
         <div className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
             <div className="flex items-start gap-3 mb-4">
-              <div className="brand-emblem">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/55/Emblem_of_India.svg/120px-Emblem_of_India.svg.png" alt="Emblem" className="w-9 h-9 object-contain" style={{ filter: "brightness(1.3)" }} />
+              <div className="brand-emblem !p-0 overflow-hidden">
+                <Logo size={44} />
               </div>
               <div>
                 <div className="font-display text-lg font-bold text-white">{t(S.brand)}</div>
