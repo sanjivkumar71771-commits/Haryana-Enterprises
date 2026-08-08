@@ -289,14 +289,126 @@ async def fetch_article_detail(url: str) -> Dict | None:
                           not any(m in p.lower() for m in UNWANTED_TEXT_MARKERS)]
             description = " ".join(paragraphs[:3])[:1200]
             important_links = _extract_important_links(article)
+            structured = _extract_structured_facts(article)
             content_html = _clean_article_html(article)
             return {
                 "heading": heading[:250],
                 "description": description,
                 "important_links": important_links,
+                "structured": structured,
                 "content_html": content_html[:60000],
                 "detail_fetched_at": datetime.now(timezone.utc),
             }
     except Exception as e:
         log.error(f"article scrape error {url}: {e}")
         return None
+
+
+# ─────────── Structured Fact Extraction ───────────
+FACT_LABELS = {
+    "total_posts": [
+        r"total\s+vacancies?", r"total\s+posts?", r"no\.?\s*of\s+vacancies?",
+        r"no\.?\s*of\s+posts?", r"number\s+of\s+posts?", r"vacancy\s+details?",
+    ],
+    "apply_start": [
+        r"(?:registration|application|apply(?:ing)?)\s+(?:opening|start(?:ing)?|commencement)\s+date",
+        r"opening\s+date\s+for\s+online\s+registration",
+        r"starting\s+date",
+    ],
+    "apply_end": [
+        r"(?:registration|application|apply(?:ing)?)\s+(?:closing|last|end(?:ing)?)\s+date",
+        r"closing\s+date\s+for\s+online\s+registration",
+        r"last\s+date\s+(?:to\s+apply|of\s+application|for\s+apply(?:ing)?)",
+        r"last\s+date",
+    ],
+    "salary": [
+        r"pay\s+scale", r"salary(?:\s+and\s+perquisites)?", r"pay\s+level",
+        r"monthly\s+salary", r"remuneration", r"basic\s+pay",
+    ],
+    "age_limit": [
+        r"age\s+limit", r"age\s+criteria", r"age\s+eligibility",
+        r"minimum\s+and\s+maximum\s+age",
+    ],
+    "selection": [
+        r"selection\s+process", r"mode\s+of\s+selection", r"selection\s+procedure",
+    ],
+    "job_location": [
+        r"job\s+location", r"place\s+of\s+posting", r"work\s+location",
+    ],
+}
+
+
+def _find_value_after(lines: list[str], idx: int, prefer_numeric: bool = False, max_len: int = 200) -> str | None:
+    """Return the first non-empty short line after idx that looks like a value.
+
+    If prefer_numeric is True, prefer lines that contain digits/currency markers
+    (falls back to first non-empty if none found in window).
+    """
+    window = []
+    for j in range(idx + 1, min(idx + 6, len(lines))):
+        cand = lines[j].strip()
+        if not cand:
+            continue
+        window.append(cand)
+    if not window:
+        return None
+    if prefer_numeric:
+        for cand in window:
+            if re.search(r"\d", cand) or "₹" in cand or "rs" in cand.lower():
+                return cand[:max_len]
+    return window[0][:max_len]
+
+
+def _extract_structured_facts(article) -> dict:
+    """Pull key labelled facts (total_posts, dates, fee, salary, age)."""
+    text = article.get_text("\n", strip=True)
+    lines = [l.strip() for l in text.split("\n") if l.strip()]
+    out: dict = {}
+
+    NUMERIC_FIELDS = {"total_posts", "apply_start", "apply_end", "salary", "age_limit"}
+
+    for key, patterns in FACT_LABELS.items():
+        for i, line in enumerate(lines):
+            low = line.lower()
+            if len(low) > 80:
+                continue
+            if any(re.search(p, low) for p in patterns):
+                val = _find_value_after(lines, i, prefer_numeric=key in NUMERIC_FIELDS)
+                if val and val.lower() != line.lower():
+                    out[key] = val[:200]
+                    break
+
+    # Total posts numeric extraction
+    if "total_posts" in out:
+        m = re.search(r"(\d[\d,]*)", out["total_posts"])
+        if m:
+            out["total_posts_num"] = int(m.group(1).replace(",", ""))
+
+    # Application fee — grab up to 6 lines after the "Application Fee" heading and pick fee amounts
+    fee_lines = []
+    fee_hits = 0
+    capture = False
+    for line in lines:
+        low = line.lower()
+        if not capture and re.search(r"application\s+fee|examination\s+fee|fee\s+details?", low) and len(low) < 80:
+            capture = True
+            continue
+        if capture:
+            # stop at next section heading
+            if fee_hits > 10 or re.search(r"(selection\s+process|age\s+limit|educational\s+qualification|how\s+to\s+apply|important\s+dates|salary)", low):
+                break
+            # Skip pure column labels
+            if low in ("category", "fee amount", "fee amount (per candidate)", "amount", "gender"):
+                fee_hits += 1
+                continue
+            # Take reasonably short informative lines
+            if len(line) < 120 and (
+                "rs" in low or "₹" in line or "/-" in line or "no fee" in low or "nil" in low or
+                re.search(r"\b(general|obc|sc|st|ews|female|male|pwd|physical)\b", low)
+            ):
+                fee_lines.append(line)
+            fee_hits += 1
+    if fee_lines:
+        out["application_fee"] = " · ".join(fee_lines[:6])[:400]
+
+    return out

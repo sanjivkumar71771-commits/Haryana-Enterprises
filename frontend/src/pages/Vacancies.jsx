@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "@/lib/api";
+import JobAlertSubscribe from "@/components/JobAlertSubscribe";
 import { useAuth } from "@/context/AuthContext";
 import { useI18n } from "@/context/I18nContext";
 import { toast } from "sonner";
@@ -117,6 +118,9 @@ const Vacancies = () => {
           </button>
         )}
       </div>
+
+      {/* Job Alert Subscription (Free) */}
+      <JobAlertSubscribe />
 
       {/* Search + Filters */}
       <div className="glass p-4 mb-6 space-y-3">

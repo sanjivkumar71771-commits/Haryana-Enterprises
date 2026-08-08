@@ -597,9 +597,134 @@ async def get_vacancy_detail(vac_id: str):
 
 @api.post("/admin/vacancies/refresh")
 async def admin_refresh_vacancies(_=Depends(require_admin)):
+    before_urls = set([v["url"] async for v in db.vacancies.find({}, {"url": 1})])
     added = await refresh_vacancies_into_db(db)
     total = await db.vacancies.count_documents({})
+    # Fan-out notifications for newly-added vacancies
+    if added > 0:
+        new_docs = await db.vacancies.find({"url": {"$nin": list(before_urls)}}).to_list(added * 2)
+        if new_docs:
+            await _notify_subscribers_of_new_vacancies(new_docs)
     return {"ok": True, "new_added": added, "total": total}
+
+
+# ─────────── Vacancy Alert Subscriptions ───────────
+class SubscribeIn(BaseModel):
+    email: EmailStr
+    categories: List[str] = []      # e.g. ["bank", "ssc"]
+    qualifications: List[str] = []  # e.g. ["graduate", "12th"]
+    keyword: Optional[str] = None
+
+
+@api.post("/vacancy-alerts/subscribe")
+async def vacancy_alerts_subscribe(payload: SubscribeIn):
+    if not payload.categories and not payload.qualifications and not payload.keyword:
+        raise HTTPException(400, "Select at least one category, qualification or a keyword")
+    doc = {
+        "email": payload.email.lower(),
+        "categories": [c.lower() for c in payload.categories][:12],
+        "qualifications": [q.lower() for q in payload.qualifications][:8],
+        "keyword": (payload.keyword or "").strip()[:80] or None,
+        "unsubscribe_token": secrets.token_urlsafe(16),
+        "created_at": datetime.now(timezone.utc),
+        "verified": True,  # skip double opt-in for now
+        "active": True,
+        "last_notified_at": None,
+    }
+    res = await db.vacancy_subscriptions.update_one(
+        {"email": doc["email"]},
+        {"$set": {k: v for k, v in doc.items() if k not in ("created_at",)},
+         "$setOnInsert": {"created_at": doc["created_at"]}},
+        upsert=True,
+    )
+    # Confirmation email via existing (mocked in dev) sender
+    try:
+        subject = "You're subscribed to Haryana Enterprises job alerts"
+        body_html = (
+            f"<h3>Alerts activated ✔</h3>"
+            f"<p>You'll be notified about new government vacancies matching:</p>"
+            f"<ul>"
+            f"<li><b>Categories:</b> {', '.join(doc['categories']) or 'Any'}</li>"
+            f"<li><b>Qualifications:</b> {', '.join(doc['qualifications']) or 'Any'}</li>"
+            f"<li><b>Keyword:</b> {doc['keyword'] or '—'}</li>"
+            f"</ul>"
+            f"<p>Unsubscribe anytime: <code>{doc['unsubscribe_token']}</code></p>"
+        )
+        send_email(payload.email, subject, body_html)
+    except Exception as e:
+        log.warning(f"subscribe email send failed: {e}")
+    return {"ok": True, "created": res.upserted_id is not None, "unsubscribe_token": doc["unsubscribe_token"]}
+
+
+@api.get("/vacancy-alerts/status")
+async def vacancy_alerts_status(email: EmailStr):
+    sub = await db.vacancy_subscriptions.find_one({"email": email.lower()})
+    if not sub:
+        return {"subscribed": False}
+    return {
+        "subscribed": bool(sub.get("active", True)),
+        "categories": sub.get("categories", []),
+        "qualifications": sub.get("qualifications", []),
+        "keyword": sub.get("keyword"),
+    }
+
+
+@api.post("/vacancy-alerts/unsubscribe")
+async def vacancy_alerts_unsubscribe(token: str = Body(..., embed=True)):
+    res = await db.vacancy_subscriptions.update_one({"unsubscribe_token": token}, {"$set": {"active": False}})
+    if res.matched_count == 0:
+        raise HTTPException(404, "Invalid unsubscribe token")
+    return {"ok": True}
+
+
+def _vacancy_matches_sub(v: dict, sub: dict) -> bool:
+    cats = sub.get("categories") or []
+    quals = sub.get("qualifications") or []
+    kw = (sub.get("keyword") or "").lower().strip()
+    if cats and v.get("category") not in cats:
+        return False
+    if quals:
+        qtext = (v.get("qualification") or "").lower()
+        if not any(q in qtext for q in quals):
+            return False
+    if kw:
+        blob = f"{v.get('title','')} {v.get('post_name','')} {v.get('organization','')} {v.get('qualification','')}".lower()
+        if kw not in blob:
+            return False
+    return True
+
+
+async def _notify_subscribers_of_new_vacancies(new_vacancies: list[dict]):
+    subs = await db.vacancy_subscriptions.find({"active": True}).to_list(2000)
+    if not subs:
+        return
+    frontend_base = os.environ.get("FRONTEND_URL", "").rstrip("/")
+    sent = 0
+    for sub in subs:
+        matched = [v for v in new_vacancies if _vacancy_matches_sub(v, sub)]
+        if not matched:
+            continue
+        items_html = "".join(
+            f'<li style="margin:8px 0"><b>{(m.get("post_name") or m.get("title") or "Vacancy")}</b> '
+            f'— {m.get("organization","")} · Last: {m.get("last_date_text","N/A")} '
+            f'<br/><a href="{frontend_base}/vacancies/{str(m["_id"])}">View details</a></li>'
+            for m in matched[:15]
+        )
+        body = (
+            f'<h3>{len(matched)} new job(s) match your alert</h3>'
+            f'<ul>{items_html}</ul>'
+            f'<p style="font-size:11px;color:#888">Unsubscribe token: <code>{sub.get("unsubscribe_token","")}</code></p>'
+        )
+        try:
+            send_email(sub["email"], f"[Job Alert] {len(matched)} new vacancies for you", body)
+            await db.vacancy_subscriptions.update_one(
+                {"_id": sub["_id"]},
+                {"$set": {"last_notified_at": datetime.now(timezone.utc)}}
+            )
+            sent += 1
+        except Exception as e:
+            log.warning(f"notify {sub.get('email')} failed: {e}")
+    log.info(f"[alerts] Notified {sent}/{len(subs)} subscribers about {len(new_vacancies)} new vacancies")
 
 
 # ─────────── CSC Services ───────────
@@ -1045,8 +1170,13 @@ _scheduler = AsyncIOScheduler(timezone="Asia/Kolkata")
 async def start_scheduler():
     async def _job():
         try:
+            before_urls = set([v["url"] async for v in db.vacancies.find({}, {"url": 1})])
             n = await refresh_vacancies_into_db(db)
             log.info(f"[scheduler] Vacancies refreshed. new={n}")
+            if n > 0:
+                new_docs = await db.vacancies.find({"url": {"$nin": list(before_urls)}}).to_list(n * 2)
+                if new_docs:
+                    await _notify_subscribers_of_new_vacancies(new_docs)
         except Exception as e:
             log.warning(f"[scheduler] Vacancy refresh failed: {e}")
 

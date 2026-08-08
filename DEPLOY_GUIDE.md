@@ -1,132 +1,163 @@
-# 🚀 Cloud Deployment Guide — Haryana Enterprises
+# 🚂 Railway Deployment — Zero se 24/7 Live
 
-## तीन options — जो पसंद आए, वो choose करें
-
-| Option | Cost | Difficulty | Best For |
-|---|---|---|---|
-| **Railway** ⭐ | $5/mo (~₹420) | ⭐ Easiest | **Recommended** |
-| **Render** | Free / $7/mo | ⭐ Easy | Free tier available |
-| **DigitalOcean App** | $6/mo | ⭐⭐ Medium | Full control |
-
-MongoDB के लिए **MongoDB Atlas** का free tier (M0, 512MB) use करें — हमेशा free।
+**Time**: ~30 mins · **Cost**: Free trial ($5 credit ≈ 500 hours) · **Result**: App 24/7 live + scraper cron chalta rahe
 
 ---
 
-## 🎯 Step 1: Code को GitHub पर Save करें (सभी options के लिए common)
+## ✅ PART 1: Pre-requisites (5 mins)
 
-1. Emergent chat के top-right corner पर **"Save to GitHub"** button दबाएँ
-2. एक नया GitHub repo बनेगा — नाम जैसे `haryana-enterprises`
-3. Repo URL note कर लें: `https://github.com/<your-username>/haryana-enterprises`
+### 1.1 GitHub account
+- Agar nahi hai → https://github.com/signup pe free account bana lo
+- Verify your email
+
+### 1.2 Code ko GitHub pe push karo
+- **Emergent chat ke top-right corner me "Save to GitHub" button dabao**
+- Ek naya private/public repo ban jayega (naam jaise `haryana-enterprises`)
+- Repo URL copy kar lo: `https://github.com/<aapka-username>/haryana-enterprises`
+
+### 1.3 Railway account
+- https://railway.app pe jao → **Sign in with GitHub** click karo
+- GitHub authorize karo
+- Railway aapko $5 free credit dega (~500 hours of usage)
+
+### 1.4 MongoDB Atlas (Free — Zaroori!)
+Railway MongoDB provide nahi karta, isliye Atlas ka free tier use karenge:
+1. https://cloud.mongodb.com pe jao → Sign up (Google/email)
+2. **"Build a Database"** → **M0 (FREE)** → Region: **Mumbai (ap-south-1)**
+3. Cluster name: `haryana-cluster` → Create (2-3 min lagenge)
+4. **Database Access** (left sidebar) → Add New Database User
+   - Username: `haryana`
+   - Password: strong password generate karo → **copy karke save karo** 🔒
+   - Role: Read and write to any database
+5. **Network Access** → Add IP Address → **Allow Access from Anywhere (0.0.0.0/0)** ✔
+6. **Database** → Connect → **Drivers** → Python → connection string copy karo:
+   ```
+   mongodb+srv://haryana:<password>@haryana-cluster.xxxxx.mongodb.net/?retryWrites=true&w=majority
+   ```
+   `<password>` ko actual password se replace karo. Ye string save rakho.
 
 ---
 
-## 🎯 Step 2: MongoDB Atlas (Free) Setup
+## ✅ PART 2: Railway par Deploy (10 mins)
 
-1. https://cloud.mongodb.com पर account बनाएँ
-2. **Create → M0 (Free) cluster** → Region: Mumbai
-3. Database Access में एक user बनाएँ (username + password note करें)
-4. Network Access में **0.0.0.0/0** allow करें (सब IPs)
-5. Connect → Drivers → Python → **connection string** copy करें
-   जैसे: `mongodb+srv://user:pass@cluster0.abc.mongodb.net/?retryWrites=true`
+### 2.1 New Project
+1. https://railway.app/new click karo
+2. **"Deploy from GitHub repo"** select karo
+3. `haryana-enterprises` repo choose karo (agar nahi dikh raha → **Configure GitHub App** karke access do)
+4. Railway automatic detect karega ki 2 services hain: `backend` + `frontend`
 
----
+### 2.2 Backend Service Setup
+Railway apne aap ek service create karega. Us par click karke:
 
-## 🎯 Step 3-A: Railway पर Deploy (Recommended)
+**Settings → Root Directory**: `backend`
+**Settings → Build Command**: `pip install -r requirements.txt`
+**Settings → Start Command**: `uvicorn server:app --host 0.0.0.0 --port $PORT`
 
-### 3.1 Sign up
-1. https://railway.app पर जाएँ → **Login with GitHub**
-2. New Project → **Deploy from GitHub repo** → अपनी `haryana-enterprises` repo चुनें
-
-### 3.2 Backend service
-Railway auto-detect करेगा। अगर नहीं करता:
-- **Root Directory:** `backend`
-- **Start command:** `uvicorn server:app --host 0.0.0.0 --port $PORT`
-
-**Environment Variables जोड़ें** (Settings → Variables):
+**Variables tab me add karo** (Add Variable button):
 ```
-MONGO_URL=<आपका MongoDB Atlas connection string>
+MONGO_URL=mongodb+srv://haryana:<password>@haryana-cluster.xxxxx.mongodb.net/?retryWrites=true&w=majority
 DB_NAME=haryana_enterprises
-JWT_SECRET=<कोई random 64-char string generate करें>
-ADMIN_EMAIL=admin@haryanaenterprises.com
-ADMIN_PASSWORD=Admin@123
-FRONTEND_URL=<आपके frontend का Railway URL — Step 3.3 के बाद fill करें>
 CORS_ORIGINS=*
+JWT_SECRET=<koi 32-char random string, jaise: kX9mNv2pQ8rT4wY6zA1bC3dE5fG7hJ0i>
+JWT_ALG=HS256
+FRONTEND_URL=https://<jab-frontend-deploy-ho-jaye-toh-add-karenge>
 ```
 
-Deploy → 2-3 minute में backend live हो जाएगा। URL note करें: `https://your-backend.up.railway.app`
+**Deploy** button dabao. 3-5 min me deploy ho jayega.
 
-### 3.3 Frontend service
-Same repo, **New Service** → same repo:
-- **Root Directory:** `frontend`
-- **Build:** `yarn install && yarn build`
-- **Start:** `npx serve -s build -l $PORT`
+Deploy hone ke baad **Settings → Domains → Generate Domain** click karo. 
+URL milega jaise: `https://haryana-backend-production.up.railway.app`
+Isko note kar lo (backend URL).
 
-**Environment Variables:**
+**Test**: Browser me `<backend-url>/api/` khol ke check karo — `{"message":"Haryana Enterprises API","status":"ok"}` aana chahiye.
+
+### 2.3 Frontend Service Setup
+Left sidebar → **+ New** → **GitHub Repo** → same repo select karo → naya service ban jayega.
+
+**Settings → Root Directory**: `frontend`
+**Settings → Build Command**: `yarn install && yarn build`
+**Settings → Start Command**: `npx serve -s build -l $PORT`
+
+**Variables tab me add karo**:
 ```
-REACT_APP_BACKEND_URL=<Step 3.2 का backend URL>
+REACT_APP_BACKEND_URL=https://haryana-backend-production.up.railway.app
 ```
+(Actual backend URL jo Step 2.2 me mila tha)
 
-Deploy → Frontend URL मिलेगा: `https://your-frontend.up.railway.app`
+**Deploy** → 5-8 min lagenge (React build slow hota hai).
 
-### 3.4 Backend में FRONTEND_URL update करें (Step 3.2 पर वापस जाएँ)
-Backend Variables में `FRONTEND_URL` अब set करें और backend redeploy करें।
+Deploy hone ke baad **Settings → Domains → Generate Domain** click karo. 
+Frontend URL milega jaise: `https://haryana-enterprises-production.up.railway.app`
 
-**Done!** ✅ Auto-updater (हर 6 घंटे में vacancy scraper) अब 24×7 चलेगा।
-
----
-
-## 🎯 Step 3-B: Render पर Deploy (Alternative)
-
-1. https://render.com → Signup with GitHub
-2. **New Web Service** → GitHub repo select
-3. **Backend:**
-   - Root: `backend`
-   - Build: `pip install -r requirements.txt`
-   - Start: `uvicorn server:app --host 0.0.0.0 --port $PORT`
-   - Environment variables जैसे Railway में ऊपर बताए हैं
-4. **Frontend (Static Site):**
-   - Root: `frontend`
-   - Build: `yarn install && yarn build`
-   - Publish directory: `build`
-   - Env: `REACT_APP_BACKEND_URL=<backend URL>`
-
-Render का **free tier** है लेकिन 15 minute inactivity पर sleep हो जाता है। Paid ($7/mo) से हमेशा awake।
+### 2.4 CORS Fix (important)
+Backend service pe wapas jao → Variables → `CORS_ORIGINS` ko update karo:
+```
+CORS_ORIGINS=https://haryana-enterprises-production.up.railway.app
+```
+Aur `FRONTEND_URL` bhi wahi rakho. Redeploy apne aap ho jayega.
 
 ---
 
-## 🎯 Step 4: Custom Domain (Optional)
+## ✅ PART 3: Verify Everything Works (5 mins)
 
-1. GoDaddy / Namecheap / BigRock से **haryanaenterprises.com** खरीदें (~₹800/year)
-2. Railway → Settings → Custom Domain → domain add करें
-3. Railway देगा एक CNAME record — इसे GoDaddy DNS में add करें
-4. 15-30 minute में SSL certificate auto-provision हो जाएगा
-
----
-
-## ✅ Deploy के बाद Verify
-
-- Site खोलें → homepage load हो
-- Admin login (`admin@haryanaenterprises.com` / `Admin@123`) → `/admin` → Analytics tab charts दिखें
-- `/vacancies` page → 200+ vacancies दिखनी चाहिए
-- Backend logs check करें — `[scheduler] Vacancies refreshed. new=X` message हर 6 घंटे में
-- Contact form submit करें → backend logs में email preview दिखे
+1. Frontend URL browser me kholo
+2. **/vacancies** page pe jao — 250+ jobs load hone chahiye
+3. Admin login karo: `admin@haryanaenterprises.com` / `Admin@123`
+4. Admin panel me ek solar application ka status change karke test karo
+5. Job alert subscription form fill karke check karo
+6. Wait 6 hours (ya admin panel se "Refresh Now" click karo) — scraper ka log dekho:
+   - Railway backend service → **Deployments → View Logs** → dekho `[scheduler] Vacancies refreshed. new=X`
 
 ---
 
-## 💡 Tips
+## 🎯 Custom Domain (Optional)
 
-- **Auto-updater** (vacancy scraper) cloud पर automatically चलता रहेगा — कोई manual कुछ नहीं करना
-- अगर scraper block हो जाए (rate limit), Admin panel में `/vacancies` page → "Refresh Now" button दबाकर manual trigger कर सकते हैं
-- MongoDB Atlas 512MB में लगभग 50,000+ vacancies + 10,000+ users आराम से आ जाएंगे
-- Site down हो जाए तो Railway में एक click में redeploy
+Agar aapke paas domain hai (jaise `haryanaenterprises.in`):
+- Railway → Frontend service → Settings → Domains → **Add Custom Domain**
+- Railway ek CNAME record deta hai
+- Aap apne DNS provider (GoDaddy/Namecheap/etc) pe ye CNAME add karo
+- 10-20 min me SSL auto-issue ho jayega
 
 ---
 
-## 🆘 मदद चाहिए हो तो
+## 💰 Cost Estimate
 
-- Railway docs: https://docs.railway.app
-- MongoDB Atlas: https://www.mongodb.com/docs/atlas/
-- मुझे chat में बताइए error का screenshot — मैं तुरंत solve करूँगा
+| Service | Free Tier | Paid |
+|---|---|---|
+| Railway (Hobby plan) | $5 credit/month | ~$5-10/month for both services combined |
+| MongoDB Atlas M0 | 512MB free forever | — |
+| Custom domain | — | ₹800-1200/year (aap ki domain company) |
 
-**कुल Time:** ~1.5 – 2 घंटे  ·  **Monthly cost:** ~₹420 (Railway) + ₹0 (MongoDB) = **~₹420/mo**
-Custom domain: +₹65/mo (₹800/year)
+**Total for 24/7**: ~₹450-850/month after free credit exhausted.
+
+---
+
+## 🔧 Common Issues
+
+### "Application error" on frontend
+→ REACT_APP_BACKEND_URL glat hai. Railway → frontend variables check karo, redeploy karo.
+
+### CORS error in console
+→ Backend ka CORS_ORIGINS me exact frontend URL daalo (trailing slash ke bina).
+
+### "MongoServerError: bad auth"
+→ Atlas password me special characters hain (`@`, `:`, `/`) → URL-encode karo ya password change kar do simple only-alphanumeric.
+
+### Scraper nahi chal raha
+→ Backend logs check karo (Railway → service → Deployments → View Logs). Search karo `Scheduler started`. Agar `next_run_time` puraana hai to service restart karo (Settings → Restart).
+
+### Free credit khatam ho gaya
+→ Railway → Settings → **Add Payment Method** → $5/month Hobby plan → 24/7 chalta rahega.
+
+---
+
+## 📞 Stuck? Ye batao mujhe:
+- Kis step pe atak gaye
+- Exact error message (screenshot ho to best)
+- Railway deployment logs
+
+Main aapko yahan se help kar dunga next step!
+
+---
+
+**Ready to start?** Part 1.2 (GitHub push) se shuru karo — jab GitHub pe repo push ho jaye, mujhe URL bhejo taaki main aage guide karun.

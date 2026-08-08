@@ -5,6 +5,7 @@ import { useI18n } from "@/context/I18nContext";
 import {
   FaArrowLeft, FaCalendarAlt, FaBuilding, FaGraduationCap, FaClock,
   FaFilePdf, FaExternalLinkAlt, FaRegClock, FaBriefcase, FaShareAlt, FaCheckCircle,
+  FaUsers, FaRupeeSign, FaMoneyBillWave, FaListUl, FaMapMarkerAlt, FaUserCheck,
 } from "react-icons/fa";
 import { toast } from "sonner";
 
@@ -124,42 +125,117 @@ const VacancyDetail = () => {
             {v.description}
           </p>
         )}
+      </div>
 
-        {/* Quick facts grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-          {v.qualification && (
-            <div className="p-3 rounded-lg bg-white/[0.03] border border-white/10">
-              <div className="text-[10px] uppercase text-slate-500 mb-1">{lang === "hi" ? "योग्यता" : "Qualification"}</div>
-              <div className="text-xs text-white flex items-start gap-1.5"><FaGraduationCap className="text-emerald-400 mt-0.5 shrink-0" /><span>{v.qualification}</span></div>
+      {/* Hero stat cards — the "at-a-glance" facts */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6" data-testid="vacancy-stats">
+        {/* Total posts — hero */}
+        <div className="stat-card stat-emerald md:col-span-1">
+          <div className="stat-icon"><FaUsers /></div>
+          <div className="stat-label">{lang === "hi" ? "कुल पद" : "Total Posts"}</div>
+          <div className="stat-value">{v.structured?.total_posts_num ?? v.structured?.total_posts ?? "—"}</div>
+        </div>
+        {/* Apply start */}
+        <div className="stat-card stat-sky">
+          <div className="stat-icon"><FaRegClock /></div>
+          <div className="stat-label">{lang === "hi" ? "आवेदन शुरू" : "Apply Start"}</div>
+          <div className="stat-value stat-value-sm">
+            {v.structured?.apply_start || v.post_date_text || "—"}
+          </div>
+        </div>
+        {/* Last date */}
+        <div className={`stat-card ${urgent ? "stat-red-glow" : "stat-amber"}`}>
+          <div className="stat-icon"><FaCalendarAlt /></div>
+          <div className="stat-label">{lang === "hi" ? "अंतिम तिथि" : "Last Date"}</div>
+          <div className="stat-value stat-value-sm">
+            {v.structured?.apply_end || v.last_date_text || "—"}
+          </div>
+          {days !== null && days >= 0 && !expired && (
+            <div className={`stat-sub ${urgent ? "text-red-200" : "text-amber-200"}`}>
+              {days === 0 ? (lang === "hi" ? "आज अंतिम" : "Today") : lang === "hi" ? `${days} दिन बाकी` : `${days}d left`}
             </div>
           )}
-          {v.post_date_text && (
-            <div className="p-3 rounded-lg bg-white/[0.03] border border-white/10">
-              <div className="text-[10px] uppercase text-slate-500 mb-1">{lang === "hi" ? "पोस्ट दिनांक" : "Post Date"}</div>
-              <div className="text-xs text-white flex items-center gap-1.5"><FaRegClock className="text-sky-400" />{v.post_date_text}</div>
-            </div>
-          )}
-          {v.last_date_text && (
-            <div className={`p-3 rounded-lg border ${urgent ? "bg-red-500/10 border-red-500/30" : "bg-white/[0.03] border-white/10"}`}>
-              <div className="text-[10px] uppercase text-slate-500 mb-1">{lang === "hi" ? "अंतिम तिथि" : "Last Date"}</div>
-              <div className={`text-xs flex items-center gap-1.5 ${urgent ? "text-red-300 font-semibold" : "text-white"}`}>
-                <FaCalendarAlt className="text-amber-400" />{v.last_date_text}
-              </div>
-              {days !== null && days >= 0 && !expired && (
-                <div className={`text-[10px] mt-1 ${urgent ? "text-red-400" : "text-emerald-400"}`}>
-                  {days === 0 ? (lang === "hi" ? "आज अंतिम दिन" : "Today is last day") : lang === "hi" ? `${days} दिन बाकी` : `${days} days left`}
-                </div>
-              )}
-            </div>
-          )}
-          {v.organization && (
-            <div className="p-3 rounded-lg bg-white/[0.03] border border-white/10">
-              <div className="text-[10px] uppercase text-slate-500 mb-1">{lang === "hi" ? "संगठन" : "Organization"}</div>
-              <div className="text-xs text-white flex items-center gap-1.5"><FaBuilding className="text-sky-400" />{v.organization}</div>
-            </div>
+          {expired && <div className="stat-sub text-slate-400">{lang === "hi" ? "समाप्त" : "Closed"}</div>}
+        </div>
+        {/* Application Fee */}
+        <div className="stat-card stat-violet">
+          <div className="stat-icon"><FaRupeeSign /></div>
+          <div className="stat-label">{lang === "hi" ? "आवेदन शुल्क" : "Application Fee"}</div>
+          <div className="stat-value stat-value-xs">
+            {v.structured?.application_fee ? v.structured.application_fee.split(" · ")[0] : "—"}
+          </div>
+          {v.structured?.application_fee?.includes(" · ") && (
+            <div className="stat-sub">{lang === "hi" ? "और वर्ग" : "+ more"}</div>
           )}
         </div>
       </div>
+
+      {/* Secondary details grid */}
+      {(v.structured?.salary || v.structured?.age_limit || v.qualification || v.structured?.selection || v.structured?.job_location) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6" data-testid="vacancy-secondary">
+          {v.structured?.salary && (
+            <div className="detail-row">
+              <div className="detail-icon bg-emerald-500/10 text-emerald-400"><FaMoneyBillWave /></div>
+              <div className="flex-1 min-w-0">
+                <div className="detail-label">{lang === "hi" ? "वेतन / पे स्केल" : "Salary / Pay Scale"}</div>
+                <div className="detail-val">{v.structured.salary}</div>
+              </div>
+            </div>
+          )}
+          {v.qualification && (
+            <div className="detail-row">
+              <div className="detail-icon bg-sky-500/10 text-sky-400"><FaGraduationCap /></div>
+              <div className="flex-1 min-w-0">
+                <div className="detail-label">{lang === "hi" ? "शैक्षणिक योग्यता" : "Qualification"}</div>
+                <div className="detail-val">{v.qualification}</div>
+              </div>
+            </div>
+          )}
+          {v.structured?.age_limit && (
+            <div className="detail-row">
+              <div className="detail-icon bg-amber-500/10 text-amber-400"><FaUserCheck /></div>
+              <div className="flex-1 min-w-0">
+                <div className="detail-label">{lang === "hi" ? "आयु सीमा" : "Age Limit"}</div>
+                <div className="detail-val">{v.structured.age_limit}</div>
+              </div>
+            </div>
+          )}
+          {v.structured?.selection && (
+            <div className="detail-row">
+              <div className="detail-icon bg-violet-500/10 text-violet-400"><FaListUl /></div>
+              <div className="flex-1 min-w-0">
+                <div className="detail-label">{lang === "hi" ? "चयन प्रक्रिया" : "Selection Process"}</div>
+                <div className="detail-val">{v.structured.selection}</div>
+              </div>
+            </div>
+          )}
+          {v.structured?.job_location && (
+            <div className="detail-row">
+              <div className="detail-icon bg-pink-500/10 text-pink-400"><FaMapMarkerAlt /></div>
+              <div className="flex-1 min-w-0">
+                <div className="detail-label">{lang === "hi" ? "नौकरी स्थान" : "Job Location"}</div>
+                <div className="detail-val">{v.structured.job_location}</div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Application fee full breakdown (if multi-tier) */}
+      {v.structured?.application_fee?.includes(" · ") && (
+        <div className="glass p-5 mb-6" data-testid="fee-breakdown">
+          <div className="section-eyebrow mb-2 flex items-center gap-2">
+            <FaRupeeSign className="text-emerald-400" />{lang === "hi" ? "श्रेणीवार शुल्क" : "Fee Breakdown"}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {v.structured.application_fee.split(" · ").map((f, i) => (
+              <div key={i} className="px-3 py-2 rounded-lg bg-white/[0.03] border border-white/10 text-xs text-slate-200 flex items-start gap-2">
+                <span className="text-emerald-400 mt-0.5">•</span><span>{f}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Important action links */}
       {Array.isArray(v.important_links) && v.important_links.length > 0 && (

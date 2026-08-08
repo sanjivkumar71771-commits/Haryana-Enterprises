@@ -1,0 +1,43 @@
+{
+  "summary": "Comprehensive backend + frontend testing of Iteration 5 features: (1) FreeJobAlert scraper title fix, (2) self-hosted vacancy detail page with stat cards, (3) Job-alert subscription API + UI. 18 new vacancy tests + 57 regression tests = 75/75 passing. Frontend flow verified end-to-end: list -> subscribe (success toast) -> internal detail navigation -> stat cards -> important links -> article HTML.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_vacancies.py",
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/vacancies_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py is now 1191 lines — approaching size limit; consider splitting vacancies+subscriptions into /app/backend/routers/vacancies.py for maintainability.",
+    "GET /api/vacancies/{id} performs synchronous fetch_article_detail on cache miss which can block for 3-5s. Consider a background task + return partial data, or a per-vacancy asyncio.Lock to avoid thundering-herd if many users hit the same fresh id at once.",
+    "_notify_subscribers_of_new_vacancies loops sequentially and awaits send_email per subscriber; fine in DEV log mode but for real SMTP it should batch/gather with concurrency limit.",
+    "vacancy_subscriptions collection: recommend adding a unique index on `email` (upsert relies on match) and an index on `active` for the fan-out query.",
+    "Subscribe endpoint accepts arbitrary category strings — validated only by client. Consider whitelist of allowed categories server-side to prevent junk in DB.",
+    "unsubscribe endpoint returns 404 for invalid token which is fine; consider rate-limiting to avoid token enumeration."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_vacancies.py (new)"
+  ],
+  "success_rate": {"backend": "100% (75/75)", "frontend": "100% (all critical flows passing)"},
+  "test_credentials": "admin@haryanaenterprises.com / Admin@123 and user@test.com / Test@123 — both work",
+  "seed_data_creation": "Tests created transient vacancy_subscriptions (test-*@example.com, unsub-*@example.com, maillog-*@example.com). Not cleaned up but harmless.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iteration 5 vacancies feature verified. Backend has 250 vacancies seeded across 10 categories (see /api/vacancies/stats). Scraper title bug is fixed — real titles like 'AIIMS Delhi — Project Nurse-II – 1 Posts' and 'PNB LBO Recruitment 2026 — 545 Posts'. Detail endpoint returns structured facts (total_posts_num, apply_end, application_fee, salary, age_limit, selection) + content_html + important_links[{kind,text,href}]. Lazy scrape happens on first GET /api/vacancies/{id}, cached for 24h via detail_fetched_at. Job alert subscribe upserts by email, returns unsubscribe_token. Emails logged to /var/log/supervisor/backend.out.log in DEV mode (SMTP_* env vars are empty). Frontend /vacancies + /vacancies/:id data-testids all present. First card 'PASS: subscription submitted & success state shown' toast working.",
+  "verification_details": {
+    "backend_tests_passed": "75/75 (18 vacancy + 57 regression)",
+    "vacancies_list_titles_real": "PASS — no 'Get Details' leaks",
+    "vacancies_stats_total": 250,
+    "detail_lazy_scrape": "PASS — first call scrapes & caches, 2nd call <5s",
+    "detail_invalid_id_400": "PASS",
+    "detail_missing_oid_404": "PASS",
+    "admin_refresh_authz": "PASS — 401 unauth / 403 user / 200 admin",
+    "subscribe_upsert_and_token": "PASS",
+    "unsubscribe_flow": "PASS",
+    "email_logged_dev_mode": "PASS",
+    "frontend_job_alert_toggle_submit_success_toast": "PASS",
+    "frontend_internal_navigation_to_/vacancies/:id": "PASS (URL confirmed, no freejobalert redirect)",
+    "frontend_detail_stat_cards_links_content": "PASS"
+  }
+}
