@@ -32,7 +32,7 @@ from auth import (
 )
 from emails import send_email, render_confirmation, render_reset
 from csc_services import CSC_CATEGORIES, all_service_ids, find_service
-from scrapers import fetch_freejobalert, refresh_vacancies_into_db
+from scrapers import fetch_freejobalert, refresh_vacancies_into_db, fetch_article_detail
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 # MongoDB
@@ -181,8 +181,9 @@ def user_public(u: dict) -> dict:
 def doc_public(a: dict) -> dict:
     a = dict(a)
     a["id"] = str(a.pop("_id", a.get("id", "")))
-    if isinstance(a.get("created_at"), datetime):
-        a["created_at"] = a["created_at"].isoformat()
+    for k, v in list(a.items()):
+        if isinstance(v, datetime):
+            a[k] = v.isoformat()
     return a
 
 
@@ -536,12 +537,22 @@ async def get_downloads():
 
 # ─────────── Vacancies (FreeJobAlert scraper) ───────────
 @api.get("/vacancies")
-async def list_vacancies(category: Optional[str] = None, q: Optional[str] = None, limit: int = 100):
+async def list_vacancies(
+    category: Optional[str] = None,
+    q: Optional[str] = None,
+    qualification: Optional[str] = None,
+    limit: int = 100,
+):
     query = {}
-    if category and category != "all": query["category"] = category
+    if category and category != "all":
+        query["category"] = category
+    if qualification and qualification != "all":
+        query["qualification"] = {"$regex": qualification, "$options": "i"}
     if q:
         query["$or"] = [
             {"title": {"$regex": q, "$options": "i"}},
+            {"organization": {"$regex": q, "$options": "i"}},
+            {"post_name": {"$regex": q, "$options": "i"}},
             {"row_text": {"$regex": q, "$options": "i"}},
         ]
     items = await db.vacancies.find(query).sort("fetched_at", -1).to_list(min(limit, 300))
@@ -556,6 +567,32 @@ async def vacancies_stats():
     latest = await db.vacancies.find({}, sort=[("fetched_at", -1)], limit=1).to_list(1)
     last_updated = latest[0]["fetched_at"].isoformat() if latest and latest[0].get("fetched_at") else None
     return {"total": total, "by_category": by_cat, "last_updated": last_updated}
+
+
+@api.get("/vacancies/{vac_id}")
+async def get_vacancy_detail(vac_id: str):
+    from bson import ObjectId
+    try:
+        oid = ObjectId(vac_id)
+    except Exception:
+        raise HTTPException(400, "Invalid id")
+    v = await db.vacancies.find_one({"_id": oid})
+    if not v:
+        raise HTTPException(404, "Vacancy not found")
+    # Lazy-scrape article detail on first view, then cache for 24h
+    now_utc = datetime.now(timezone.utc)
+    prev_fetched = v.get("detail_fetched_at")
+    if prev_fetched and prev_fetched.tzinfo is None:
+        prev_fetched = prev_fetched.replace(tzinfo=timezone.utc)
+    needs_detail = (not v.get("content_html")) or (
+        prev_fetched and (now_utc - prev_fetched).total_seconds() > 86400
+    )
+    if needs_detail and v.get("url"):
+        detail = await fetch_article_detail(v["url"])
+        if detail:
+            await db.vacancies.update_one({"_id": oid}, {"$set": detail})
+            v.update(detail)
+    return doc_public(v)
 
 
 @api.post("/admin/vacancies/refresh")

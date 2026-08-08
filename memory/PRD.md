@@ -60,3 +60,40 @@
 - Brute-force lockout on `/auth/login`
 - CSV / Excel export from admin tables
 - Chatbot / consultation booking widget
+
+
+## Implemented — Iteration 5 (08 Aug 2026) — Vacancies self-hosted detail + Scraper fix
+### FreeJobAlert scraper — Bug fix
+- Old scraper picked the first `<a>` inside every `<tr>`, capturing "Get Details" as title
+- Rewrote `backend/scrapers.py` `_parse_row()` to map the 7-column layout: td1=organization, td2=post_name, td3=qualification, td5=last_date, and pull the URL from the last anchor
+- New fields persisted: `organization`, `post_name`, `qualification`, `post_date_text`, `last_date_text`, `category` (adds "medical")
+- Swapped dead `/upcoming-sarkari-naukri/` (404) with `/sarkari-naukri/`
+- 250 real vacancies with clean titles like "PNB — Local Bank Officer – 545 Posts"
+
+### Users no longer leave the site
+- Detail article scraper `fetch_article_detail(url)` extracts heading, description, important action links (apply / notification PDF / official website) and cleaned `content_html` from `.entry-content`
+- Strips ads, telegram/newsletter self-promo, and internal freejobalert.com nav
+- Backend `GET /api/vacancies/{id}` lazy-scrapes on first view and caches for 24h
+- New `/vacancies/:id` route + `VacancyDetail.jsx` renders: header (badges + urgency), quick-facts grid, colored action-link cards, and full article inside `.vacancy-article` styled block
+- Vacancy list cards now navigate internally via `<Link>` (Apply link only appears inside the detail page)
+
+### UI enhancements
+- Qualification dropdown filter (10th / 12th / ITI / Diploma / Graduate / B.Tech / PG)
+- Organization + qualification chips on every card
+- Days-remaining indicator with red urgency (≤3 days), "closed" state for expired
+- Bilingual (Hindi/English) on detail page + share button
+
+### Backend
+- `list_vacancies` accepts `qualification` filter and searches org/post_name too
+- `doc_public` serializes all datetime fields (not just `created_at`)
+
+## Backlog (updated)
+### P0
+- (none)
+### P1
+- Railway deployment guidance (guide in /app/DEPLOY_GUIDE.md, user requested zero-to-live walkthrough)
+- Email/WhatsApp alert subscription for new vacancies
+### P2
+- Save/bookmark vacancy for logged-in users
+- Deep vacancy search filters (state, salary range)
+- Brute-force lockout, CSV export
