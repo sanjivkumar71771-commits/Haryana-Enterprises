@@ -32,6 +32,8 @@ from auth import (
 )
 from emails import send_email, render_confirmation, render_reset
 from csc_services import CSC_CATEGORIES, all_service_ids, find_service
+from scrapers import fetch_freejobalert, refresh_vacancies_into_db
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 # MongoDB
 mongo_url = os.environ["MONGO_URL"]
@@ -532,6 +534,37 @@ async def get_downloads():
     return [doc_public(i) for i in items]
 
 
+# ─────────── Vacancies (FreeJobAlert scraper) ───────────
+@api.get("/vacancies")
+async def list_vacancies(category: Optional[str] = None, q: Optional[str] = None, limit: int = 100):
+    query = {}
+    if category and category != "all": query["category"] = category
+    if q:
+        query["$or"] = [
+            {"title": {"$regex": q, "$options": "i"}},
+            {"row_text": {"$regex": q, "$options": "i"}},
+        ]
+    items = await db.vacancies.find(query).sort("fetched_at", -1).to_list(min(limit, 300))
+    return [doc_public(v) for v in items]
+
+
+@api.get("/vacancies/stats")
+async def vacancies_stats():
+    total = await db.vacancies.count_documents({})
+    pipeline = [{"$group": {"_id": "$category", "count": {"$sum": 1}}}]
+    by_cat = [{"category": r["_id"] or "other", "count": r["count"]} async for r in db.vacancies.aggregate(pipeline)]
+    latest = await db.vacancies.find({}, sort=[("fetched_at", -1)], limit=1).to_list(1)
+    last_updated = latest[0]["fetched_at"].isoformat() if latest and latest[0].get("fetched_at") else None
+    return {"total": total, "by_category": by_cat, "last_updated": last_updated}
+
+
+@api.post("/admin/vacancies/refresh")
+async def admin_refresh_vacancies(_=Depends(require_admin)):
+    added = await refresh_vacancies_into_db(db)
+    total = await db.vacancies.count_documents({})
+    return {"ok": True, "new_added": added, "total": total}
+
+
 # ─────────── CSC Services ───────────
 @api.get("/csc/services")
 async def csc_services_list():
@@ -852,6 +885,9 @@ async def startup():
     await db.csc_requests.create_index("user_id")
     await db.irrigation_applications.create_index("ref_no", unique=True)
     await db.irrigation_applications.create_index("user_id")
+    await db.vacancies.create_index("url", unique=True)
+    await db.vacancies.create_index("category")
+    await db.vacancies.create_index("fetched_at")
     await db.password_reset_tokens.create_index("token", unique=True)
     await db.password_reset_tokens.create_index("expires_at", expireAfterSeconds=0)
     await db.uploads.create_index("user_id")
@@ -962,3 +998,27 @@ async def startup():
 @app.on_event("shutdown")
 async def shutdown():
     client.close()
+
+
+# ─────────── Background scheduler (FreeJobAlert every 6 hrs) ───────────
+_scheduler = AsyncIOScheduler(timezone="Asia/Kolkata")
+
+
+@app.on_event("startup")
+async def start_scheduler():
+    async def _job():
+        try:
+            n = await refresh_vacancies_into_db(db)
+            log.info(f"[scheduler] Vacancies refreshed. new={n}")
+        except Exception as e:
+            log.warning(f"[scheduler] Vacancy refresh failed: {e}")
+
+    _scheduler.add_job(_job, "interval", hours=6, next_run_time=datetime.now(timezone.utc))
+    _scheduler.start()
+    log.info("Scheduler started (vacancies every 6h)")
+
+
+@app.on_event("shutdown")
+async def stop_scheduler():
+    try: _scheduler.shutdown(wait=False)
+    except Exception: pass

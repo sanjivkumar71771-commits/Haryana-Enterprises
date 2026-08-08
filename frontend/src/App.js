@@ -33,6 +33,7 @@ import CSCServices from "@/pages/CSCServices";
 import CSCApply from "@/pages/CSCApply";
 import MicroIrrigation from "@/pages/MicroIrrigation";
 import IrrigationApply from "@/pages/IrrigationApply";
+import Vacancies from "@/pages/Vacancies";
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -66,6 +67,7 @@ function AppRouter() {
       <Route path="/csc/apply" element={<CSCApply />} />
       <Route path="/irrigation" element={<MicroIrrigation />} />
       <Route path="/irrigation/apply" element={<IrrigationApply />} />
+      <Route path="/vacancies" element={<Vacancies />} />
       <Route path="/gallery" element={<Gallery />} />
       <Route path="/notices" element={<Notices />} />
       <Route path="/downloads" element={<Downloads />} />

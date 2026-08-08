@@ -7,7 +7,7 @@ import {
   FaSolarPanel, FaMoneyBillWave, FaBars, FaTimes,
   FaTachometerAlt, FaFileDownload, FaHeadset, FaHome, FaInfoCircle,
   FaCogs, FaImages, FaBullhorn, FaQuestionCircle, FaChevronDown,
-  FaAdjust, FaLanguage, FaSignOutAlt, FaIdCard, FaSeedling
+  FaAdjust, FaLanguage, FaSignOutAlt, FaIdCard, FaSeedling, FaBriefcase
 } from "react-icons/fa";
 
 const Header = () => {
@@ -38,6 +38,7 @@ const Header = () => {
     { to: "/irrigation", label: t(S.nav.irrigation), icon: FaSeedling },
     { to: "/loan/apply", label: t(S.nav.loan), icon: FaMoneyBillWave },
     { to: "/csc", label: t(S.nav.csc), icon: FaIdCard },
+    { to: "/vacancies", label: t(S.nav.vacancies), icon: FaBriefcase },
     { to: "/downloads", label: t(S.nav.downloads), icon: FaFileDownload },
   ];
   const moreLinks = [

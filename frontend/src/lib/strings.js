@@ -10,6 +10,7 @@ export const S = {
     loan: { hi: "लोन", en: "Loan" },
     csc: { hi: "CSC सेवाएँ", en: "CSC Services" },
     irrigation: { hi: "सिंचाई / कृषि", en: "Irrigation / Farm" },
+    vacancies: { hi: "भर्तियाँ", en: "Vacancies" },
     gallery: { hi: "गैलरी", en: "Gallery" },
     notices: { hi: "सूचना बोर्ड", en: "Notices" },
     downloads: { hi: "डाउनलोड", en: "Downloads" },
