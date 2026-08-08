@@ -97,3 +97,47 @@
 - Save/bookmark vacancy for logged-in users
 - Deep vacancy search filters (state, salary range)
 - Brute-force lockout, CSV export
+
+## Implemented — Iteration 6 (08 Aug 2026) — Structured facts + Job Alert Subscription
+### Structured detail extraction
+- `backend/scrapers.py` `_extract_structured_facts()` scans article for labelled facts and picks the next line as value (prefers numeric/currency lines)
+- Extracted fields: `total_posts` (+ `total_posts_num`), `apply_start`, `apply_end`, `application_fee` (multi-tier joined with " · "), `salary`, `age_limit`, `selection`, `job_location`
+- Application fee parser captures 2-6 lines under the "Application Fee" heading and stops at next section
+
+### Detail page UI overhaul
+- Hero row of 4 glossy stat cards (`.stat-card` in index.css) — emerald (Total Posts), sky (Apply Start), amber/red-glow (Last Date + countdown), violet (Application Fee)
+- Secondary detail rows (`.detail-row`) with icon+label+value for Salary, Qualification, Age Limit, Selection Process, Job Location
+- Multi-tier fee breakdown shown as bullet grid when fee contains " · "
+- Pulsing red-glow border for last-date cards with ≤3 days remaining
+- Light-theme overrides for stat-card and detail-row
+
+### Free Job Alert Subscription
+- New Mongo collection `vacancy_subscriptions` (email, categories[], qualifications[], keyword, active, unsubscribe_token, last_notified_at)
+- Endpoints:
+  - `POST /api/vacancy-alerts/subscribe` — validates ≥1 preference, upserts by email, sends confirmation email (logged in DEV via `emails.py`)
+  - `GET /api/vacancy-alerts/status?email=…` — returns current prefs
+  - `POST /api/vacancy-alerts/unsubscribe` — token-based deactivation
+- Fan-out on new vacancies:
+  - `_notify_subscribers_of_new_vacancies()` matches each subscriber against `category`, `qualification` substring, and `keyword` blob (title+post_name+org+qualification)
+  - Called from both the APScheduler 6-hour job AND admin manual refresh — diff computed via `before_urls` snapshot
+  - Email body links back to our own `/vacancies/{id}` route (uses `FRONTEND_URL` env var)
+- Frontend `JobAlertSubscribe.jsx` — collapsible glass card with email input, category chips (10), qualification chips (7), optional keyword, submit button; success state with checkmark card
+
+### Deployment guide
+- Rewrote `/app/DEPLOY_GUIDE.md` with a zero-to-live Railway walkthrough (Parts 1-3): GitHub push, MongoDB Atlas free cluster, Railway backend+frontend setup with all env vars, custom domain, cost estimate, and troubleshooting
+
+### Testing
+- 75/75 backend + all critical frontend flows passing (iteration_4.json)
+- Zero critical issues. Testing agent flagged only P2 refactors (route file split, async concurrency limit for real SMTP).
+
+## Backlog (updated)
+### P1
+- Railway deploy — user needs to click "Save to GitHub" and follow /app/DEPLOY_GUIDE.md
+- Split server.py into /app/backend/routers/ (vacancies, subscriptions, admin, applications) — nearing 1200 lines
+### P2
+- Whitelist categories server-side on subscribe
+- Rate-limit unsubscribe (token enumeration guard)
+- Real SMTP integration (Resend or SendGrid free tier) — replace emails.py DEV logger
+- Background lazy article scrape + per-URL lock to avoid 3-5s block on cold detail hit
+- Save/bookmark vacancy for logged-in users, state-wise filter
+
