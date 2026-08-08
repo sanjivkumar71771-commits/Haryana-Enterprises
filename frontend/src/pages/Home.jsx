@@ -7,6 +7,7 @@ import api from "@/lib/api";
 import { toast } from "sonner";
 import Marquee from "react-fast-marquee";
 import SolarCalculator from "@/components/SolarCalculator";
+import SchemesInfo from "@/components/SchemesInfo";
 import {
   FaSolarPanel, FaMoneyBillWave, FaFileSignature, FaSearchLocation, FaTools,
   FaTasks, FaCheckCircle, FaChevronRight, FaChevronDown, FaEnvelope, FaLock,
@@ -29,7 +30,7 @@ const flowSteps = [
 const services = [
   { icon: FaSolarPanel, hi: "PM सूर्य घर योजना", en: "PM Surya Ghar Scheme", desc_hi: "मुफ्त बिजली + ₹78,000 – ₹1,10,000 सब्सिडी", desc_en: "Free electricity + ₹78,000–₹1,10,000 subsidy", to: "/solar/apply?type=pm_surya_ghar", accent: "emerald" },
   { icon: FaSeedling, hi: "डिग्गी / फव्वारा / ड्रिप", en: "Diggi / Sprinkler / Drip", desc_hi: "70%–85% सब्सिडी · P23, P288 सफेदा", desc_en: "70%–85% subsidy · P23, P288 Poplar", to: "/irrigation", accent: "amber" },
-  { icon: FaMoneyBillWave, hi: "सोलर / बिज़नेस लोन", en: "Solar / Business Loan", desc_hi: "7.5% ब्याज से · 5–7 दिन मंज़ूरी", desc_en: "From 7.5% · Approved in 5–7 days", to: "/loan/apply", accent: "emerald" },
+  { icon: FaMoneyBillWave, hi: "सोलर / बिज़नेस लोन", en: "Solar / Business Loan", desc_hi: "5.75% ब्याज · 10 वर्ष तक · 0% प्रोसेसिंग", desc_en: "5.75% interest · Up to 10 years · 0% processing", to: "/loan/apply", accent: "emerald" },
   { icon: FaIdCard, hi: "CSC डिजिटल सेवाएँ", en: "CSC Digital Services", desc_hi: "आधार, PAN, बीमा, बिल — 47+ सेवाएँ", desc_en: "Aadhaar, PAN, insurance, bills — 47+ services", to: "/csc", accent: "amber" },
 ];
 
@@ -233,7 +234,7 @@ const Home = () => {
                 <div className="app-card-icon"><FaMoneyBillWave /></div>
                 <div>
                   <div className="app-card-title">{lang === "hi" ? "लोन आवेदन" : "Loan Application"}</div>
-                  <div className="app-card-sub">{lang === "hi" ? "7.5% से" : "From 7.5%"}</div>
+                  <div className="app-card-sub">{lang === "hi" ? "5.75% ब्याज" : "5.75% interest"}</div>
                 </div>
               </Link>
               <Link to="/status" className="app-card" data-testid="app-card-status">
@@ -262,6 +263,9 @@ const Home = () => {
 
       {/* ─────────── Solar Savings Calculator ─────────── */}
       <SolarCalculator />
+
+      {/* ─────────── Schemes Info: PM Surya Ghar + Loan Details ─────────── */}
+      <SchemesInfo />
 
       {/* ─────────── Services ─────────── */}
       <section className="max-w-7xl mx-auto px-4 py-14" data-testid="services-section">
@@ -300,7 +304,7 @@ const Home = () => {
           {[
             { n: "500+", l_hi: "इंस्टॉलेशन", l_en: "Installations" },
             { n: "₹2 Cr+", l_hi: "सब्सिडी दिलवाई", l_en: "Subsidy Given" },
-            { n: "7.5%", l_hi: "से लोन दर", l_en: "Loan Rate From" },
+            { n: "5.75%", l_hi: "लोन ब्याज दर", l_en: "Loan Interest Rate" },
             { n: "5+", l_hi: "वर्षों का अनुभव", l_en: "Years of Experience" },
           ].map((s, i) => (
             <div key={i} data-testid={`stat-${i}`}>

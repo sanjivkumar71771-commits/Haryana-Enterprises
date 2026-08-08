@@ -10,7 +10,7 @@ const cards = [
   { icon: FaIndustry, hi: "व्यावसायिक सोलर", en: "Commercial Solar", desc_hi: "दुकानों, फैक्ट्रियों के लिए।", desc_en: "For shops & factories.", to: "/solar/apply?type=rooftop" },
   { icon: FaTractor, hi: "KUSUM (कृषि)", en: "KUSUM (Agri)", desc_hi: "किसानों के लिए सोलर पंप।", desc_en: "Solar pumps for farmers.", to: "/contact" },
   { icon: FaBolt, hi: "सोलर इंस्टॉलेशन", en: "Solar Installation", desc_hi: "प्रमाणित इंजीनियरों द्वारा।", desc_en: "By certified engineers.", to: "/solar/apply?type=installation" },
-  { icon: FaMoneyBillWave, hi: "सोलर लोन", en: "Solar Loan", desc_hi: "7.5% ब्याज दर से।", desc_en: "From 7.5% interest rate.", to: "/loan/apply?type=solar" },
+  { icon: FaMoneyBillWave, hi: "सोलर लोन", en: "Solar Loan", desc_hi: "5.75% ब्याज · 10 वर्ष तक · 0% प्रोसेसिंग।", desc_en: "5.75% · Up to 10 yrs · 0% processing.", to: "/loan/apply?type=solar" },
   { icon: FaHandshake, hi: "बिज़नेस लोन", en: "Business Loan", desc_hi: "व्यापार विस्तार के लिए।", desc_en: "For business expansion.", to: "/loan/apply?type=business" },
   { icon: FaSolarPanel, hi: "सब्सिडी परामर्श", en: "Subsidy Consulting", desc_hi: "सभी सब्सिडी की पूरी जानकारी।", desc_en: "Complete info on subsidies.", to: "/contact" },
 ];

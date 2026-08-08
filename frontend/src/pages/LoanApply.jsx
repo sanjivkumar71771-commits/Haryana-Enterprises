@@ -16,7 +16,7 @@ const LoanApply = () => {
   const [f, setF] = useState({
     loan_type: params.get("type") || "solar",
     full_name: "", email: "", phone: "", address: "", city: "Sirsa", state: "Haryana", pincode: "",
-    occupation: "salaried", monthly_income: "", loan_amount: "", loan_tenure_months: 60,
+    occupation: "salaried", monthly_income: "", loan_amount: "", loan_tenure_months: 120,
     pan_number: "", aadhaar_number: "", notes: "",
   });
 
@@ -47,7 +47,7 @@ const LoanApply = () => {
   const emi = (() => {
     const P = Number(f.loan_amount) || 0;
     const n = Number(f.loan_tenure_months) || 0;
-    const r = 0.075 / 12;
+    const r = 0.0575 / 12;
     if (P <= 0 || n <= 0) return 0;
     return Math.round((P * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1));
   })();
@@ -109,7 +109,7 @@ const LoanApply = () => {
         {emi > 0 && (
           <div className="glass p-4 flex items-center justify-between border-emerald-500/30 !bg-emerald-500/5" data-testid="emi-preview">
             <div>
-              <div className="text-xs text-slate-400 uppercase tracking-widest">{t({ hi: "अनुमानित EMI (7.5% ब्याज)", en: "Estimated EMI (7.5% interest)" })}</div>
+              <div className="text-xs text-slate-400 uppercase tracking-widest">{t({ hi: "अनुमानित EMI (5.75% ब्याज · 0% प्रोसेसिंग)", en: "Estimated EMI (5.75% interest · 0% processing)" })}</div>
               <div className="text-3xl font-display font-bold text-emerald-400">₹ {emi.toLocaleString("en-IN")}<span className="text-sm font-normal text-slate-500"> / {t({ hi: "माह", en: "month" })}</span></div>
             </div>
             <div className="text-amber-400 text-4xl"><i className="fa-solid fa-calculator"></i></div>

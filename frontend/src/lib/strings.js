@@ -26,7 +26,7 @@ export const S = {
     slide1_sub: { hi: "₹78,000 तक की सब्सिडी और 300 यूनिट मुफ्त बिजली प्रति माह पाएँ", en: "Get up to ₹78,000 subsidy and 300 units of free electricity per month" },
     slide2_title: { hi: "रूफटॉप सोलर पर 40% तक सब्सिडी", en: "Up to 40% Subsidy on Rooftop Solar" },
     slide2_sub: { hi: "आज ही आवेदन करें और अपनी बिजली की लागत कम करें", en: "Apply today and reduce your electricity cost" },
-    slide3_title: { hi: "सोलर एवं व्यावसायिक लोन 7.5% ब्याज दर पर", en: "Solar & Business Loans at 7.5% Interest" },
+    slide3_title: { hi: "सोलर एवं व्यावसायिक लोन 5.75% ब्याज दर पर", en: "Solar & Business Loans at 5.75% Interest" },
     slide3_sub: { hi: "आसान EMI · तेज़ मंज़ूरी · न्यूनतम दस्तावेज़", en: "Easy EMI · Fast approval · Minimal documents" },
     apply_now: { hi: "अभी आवेदन करें", en: "Apply Now" },
     know_more: { hi: "और जानें", en: "Know More" },
