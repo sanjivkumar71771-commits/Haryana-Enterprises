@@ -30,7 +30,7 @@ from auth import (
     get_current_user,
     require_admin,
 )
-from emails import send_email, render_confirmation, render_reset
+from emails import send_email, send_email_async, render_confirmation, render_reset
 from csc_services import CSC_CATEGORIES, all_service_ids, find_service
 from scrapers import fetch_freejobalert, refresh_vacancies_into_db, fetch_article_detail
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -571,7 +571,6 @@ async def vacancies_stats():
 
 @api.get("/vacancies/{vac_id}")
 async def get_vacancy_detail(vac_id: str):
-    from bson import ObjectId
     try:
         oid = ObjectId(vac_id)
     except Exception:
@@ -579,19 +578,29 @@ async def get_vacancy_detail(vac_id: str):
     v = await db.vacancies.find_one({"_id": oid})
     if not v:
         raise HTTPException(404, "Vacancy not found")
-    # Lazy-scrape article detail on first view, then cache for 24h
+    # Lazy-scrape article detail on first view, then cache for 24h.
+    # Also cache failed attempts for 1h to avoid re-hitting a slow/blocked upstream on every view.
     now_utc = datetime.now(timezone.utc)
     prev_fetched = v.get("detail_fetched_at")
     if prev_fetched and prev_fetched.tzinfo is None:
         prev_fetched = prev_fetched.replace(tzinfo=timezone.utc)
-    needs_detail = (not v.get("content_html")) or (
-        prev_fetched and (now_utc - prev_fetched).total_seconds() > 86400
-    )
+    prev_attempt = v.get("detail_attempted_at")
+    if prev_attempt and prev_attempt.tzinfo is None:
+        prev_attempt = prev_attempt.replace(tzinfo=timezone.utc)
+
+    has_content = bool(v.get("content_html"))
+    stale = prev_fetched and (now_utc - prev_fetched).total_seconds() > 86400
+    recently_attempted = prev_attempt and (now_utc - prev_attempt).total_seconds() < 3600
+    needs_detail = (not has_content or stale) and not recently_attempted
+
     if needs_detail and v.get("url"):
         detail = await fetch_article_detail(v["url"])
         if detail:
             await db.vacancies.update_one({"_id": oid}, {"$set": detail})
             v.update(detail)
+        else:
+            # Negative-cache: mark attempted so we do not re-scrape for 1 hour
+            await db.vacancies.update_one({"_id": oid}, {"$set": {"detail_attempted_at": now_utc}})
     return doc_public(v)
 
 
@@ -650,7 +659,7 @@ async def vacancy_alerts_subscribe(payload: SubscribeIn):
             f"</ul>"
             f"<p>Unsubscribe anytime: <code>{doc['unsubscribe_token']}</code></p>"
         )
-        send_email(payload.email, subject, body_html)
+        await send_email_async(payload.email, subject, body_html)
     except Exception as e:
         log.warning(f"subscribe email send failed: {e}")
     return {"ok": True, "created": res.upserted_id is not None, "unsubscribe_token": doc["unsubscribe_token"]}
@@ -716,7 +725,7 @@ async def _notify_subscribers_of_new_vacancies(new_vacancies: list[dict]):
             f'<p style="font-size:11px;color:#888">Unsubscribe token: <code>{sub.get("unsubscribe_token","")}</code></p>'
         )
         try:
-            send_email(sub["email"], f"[Job Alert] {len(matched)} new vacancies for you", body)
+            await send_email_async(sub["email"], f"[Job Alert] {len(matched)} new vacancies for you", body)
             await db.vacancy_subscriptions.update_one(
                 {"_id": sub["_id"]},
                 {"$set": {"last_notified_at": datetime.now(timezone.utc)}}
@@ -1076,11 +1085,8 @@ async def startup():
         })
         log.info(f"Seeded admin: {admin_email}")
     else:
-        if not verify_password(admin_pass, existing["password_hash"]):
-            await db.users.update_one(
-                {"email": admin_email},
-                {"$set": {"password_hash": hash_password(admin_pass)}},
-            )
+        # Only ensure admin role; do NOT overwrite password on every restart —
+        # that would silently reset a password an admin intentionally changed.
         if existing.get("role") != "admin":
             await db.users.update_one({"email": admin_email}, {"$set": {"role": "admin"}})
 

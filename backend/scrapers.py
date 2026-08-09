@@ -229,9 +229,9 @@ def _extract_important_links(article) -> list[dict]:
 
 
 def _clean_article_html(article) -> str:
-    """Strip ads, self-promo, and internal freejobalert nav from article HTML."""
+    """Strip ads, self-promo, inline event handlers, javascript: hrefs and internal freejobalert nav."""
     # Remove obviously unwanted tags
-    for tag in article.find_all(["script", "style", "iframe", "noscript", "form", "button"]):
+    for tag in article.find_all(["script", "style", "iframe", "noscript", "form", "button", "object", "embed", "svg"]):
         tag.decompose()
     # Remove ad / share / related containers by class hints
     for el in article.find_all(True):
@@ -246,19 +246,38 @@ def _clean_article_html(article) -> str:
         txt = p.get_text(" ", strip=True).lower()
         if any(m in txt for m in UNWANTED_TEXT_MARKERS) and len(txt) < 400:
             p.decompose()
+    # Strip inline event handler attrs (onclick, onerror, onload, etc.) on ALL elements
+    for el in article.find_all(True):
+        for attr in list(el.attrs.keys()):
+            if attr.lower().startswith("on"):
+                del el.attrs[attr]
     # Strip freejobalert internal links (unwrap anchor, keep text)
     for a in article.find_all("a", href=True):
-        href = a["href"].lower()
+        href = (a.get("href") or "").strip()
+        low_href = href.lower()
+        # Block javascript:, data:, vbscript: URIs — potential XSS vectors
+        if low_href.startswith(("javascript:", "data:", "vbscript:", "file:")):
+            a.decompose()
+            continue
         if _is_junk_link(a.get_text(strip=True), href):
             a.decompose()
             continue
-        if "freejobalert.com" in href and not href.endswith(".pdf"):
+        if "freejobalert.com" in low_href and not low_href.endswith(".pdf"):
+            a.unwrap()
+            continue
+        # Only allow http(s) hrefs — anything else is suspicious
+        if not low_href.startswith(("http://", "https://", "mailto:", "tel:")):
             a.unwrap()
             continue
         # Open remaining external links in new tab
         a["target"] = "_blank"
-        a["rel"] = "noreferrer nofollow"
+        a["rel"] = "noreferrer noopener nofollow"
         a["class"] = (a.get("class") or []) + ["ext-link"]
+    # Strip javascript: from image src too
+    for img in article.find_all("img", src=True):
+        src = (img.get("src") or "").strip().lower()
+        if src.startswith(("javascript:", "data:", "vbscript:")):
+            img.decompose()
     # Remove empty tags left behind
     for el in article.find_all(True):
         if not el.get_text(strip=True) and not el.find("img"):

@@ -6,6 +6,7 @@ later plug in Gmail/SendGrid/Resend SMTP details via .env to enable delivery.
 """
 import os
 import smtplib
+import asyncio
 import logging
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -18,17 +19,8 @@ def _smtp_configured() -> bool:
     return all(os.environ.get(k) for k in ("SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS", "SMTP_FROM"))
 
 
-def send_email(to: str, subject: str, html: str, text: Optional[str] = None) -> dict:
-    """Send an email. Returns {sent: bool, mode: 'smtp'|'log', error?: str}."""
-    text_body = text or html
-    if not _smtp_configured():
-        log.info("=" * 70)
-        log.info(f"[EMAIL — DEV MODE, would send to] {to}")
-        log.info(f"[Subject] {subject}")
-        log.info(f"[Body]\n{text_body}")
-        log.info("=" * 70)
-        return {"sent": True, "mode": "log"}
-
+def _do_send_smtp(to: str, subject: str, html: str, text_body: str) -> dict:
+    """Blocking SMTP call. Must be run in an executor when called from async code."""
     try:
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
@@ -47,6 +39,34 @@ def send_email(to: str, subject: str, html: str, text: Optional[str] = None) -> 
     except Exception as e:
         log.error(f"Failed to send email: {e}")
         return {"sent": False, "mode": "smtp", "error": str(e)}
+
+
+def send_email(to: str, subject: str, html: str, text: Optional[str] = None) -> dict:
+    """Send an email synchronously.
+
+    In DEV mode (no SMTP configured) logs to console — this is safe to call from
+    async code because it does not block. When SMTP IS configured this DOES block
+    for up to 15s; async callers should use `send_email_async()` instead.
+    Returns {sent: bool, mode: 'smtp'|'log', error?: str}.
+    """
+    text_body = text or html
+    if not _smtp_configured():
+        log.info("=" * 70)
+        log.info(f"[EMAIL — DEV MODE, would send to] {to}")
+        log.info(f"[Subject] {subject}")
+        log.info(f"[Body]\n{text_body}")
+        log.info("=" * 70)
+        return {"sent": True, "mode": "log"}
+    return _do_send_smtp(to, subject, html, text_body)
+
+
+async def send_email_async(to: str, subject: str, html: str, text: Optional[str] = None) -> dict:
+    """Non-blocking wrapper — offloads SMTP send to a thread so it never stalls the event loop."""
+    text_body = text or html
+    if not _smtp_configured():
+        # DEV mode is pure logging — safe to inline
+        return send_email(to, subject, html, text)
+    return await asyncio.to_thread(_do_send_smtp, to, subject, html, text_body)
 
 
 def render_confirmation(kind: str, name: str, ref_no: str, extra_lines: list = None) -> tuple:
