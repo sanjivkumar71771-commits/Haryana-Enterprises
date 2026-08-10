@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import api from "@/lib/api";
 import { useI18n } from "@/context/I18nContext";
@@ -6,8 +6,10 @@ import {
   FaArrowLeft, FaCalendarAlt, FaBuilding, FaGraduationCap, FaClock,
   FaFilePdf, FaExternalLinkAlt, FaRegClock, FaBriefcase, FaShareAlt, FaCheckCircle,
   FaUsers, FaRupeeSign, FaMoneyBillWave, FaListUl, FaMapMarkerAlt, FaUserCheck,
+  FaWhatsapp,
 } from "react-icons/fa";
 import { toast } from "sonner";
+import ShareModal from "@/components/poster/ShareModal";
 
 const KIND_META = {
   apply:        { hi: "ऑनलाइन आवेदन",   en: "Apply Online",       icon: FaCheckCircle,     cls: "bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/15", iconCls: "text-emerald-400" },
@@ -32,6 +34,7 @@ const VacancyDetail = () => {
   const [v, setV] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [shareOpen, setShareOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -54,6 +57,35 @@ const VacancyDetail = () => {
       else { await navigator.clipboard.writeText(window.location.href); toast.success(lang === "hi" ? "लिंक कॉपी हुआ" : "Link copied"); }
     } catch {}
   };
+
+  // Map our backend vacancy shape into the shape the ShareModal / Poster expects
+  const posterVacancy = useMemo(() => {
+    if (!v) return null;
+    const s = v.structured || {};
+    const highlights = [];
+    if (v.post_name) highlights.push(`Post: ${v.post_name}`);
+    if (v.qualification) highlights.push(v.qualification);
+    if (s.application_fee) highlights.push(`Fee: ${s.application_fee}`);
+    if (s.salary) highlights.push(`Salary: ${s.salary}`);
+    highlights.push("For More Details Read Official Notification");
+    return {
+      id: v.id || id,
+      jobTitle: v.post_name || v.title || "Government Vacancy",
+      organization: v.organization || v.title || "—",
+      totalPosts: (s.total_posts && String(s.total_posts).match(/\d+/)?.[0]) || s.total_posts || "—",
+      qualification: v.qualification || "As per notification",
+      lastDate: v.last_date_text || s.apply_end || "As per notification",
+      lastDateNote: s.apply_end && s.apply_end !== v.last_date_text ? "Tentative" : "",
+      jobType: v.application_mode === "offline"
+        ? "Offline Form Job"
+        : v.application_mode === "online"
+          ? "Online Form Job"
+          : "Government Job",
+      location: s.location || "As per notification",
+      selectionProcess: s.selection_process || "As per official notification",
+      highlights: highlights.slice(0, 5),
+    };
+  }, [v, id]);
 
   if (loading) {
     return (
@@ -90,8 +122,11 @@ const VacancyDetail = () => {
         <Link to="/vacancies" className="link-mint inline-flex items-center gap-2 text-sm" data-testid="back-to-vacancies">
           <FaArrowLeft /> {lang === "hi" ? "सभी भर्तियाँ" : "All Vacancies"}
         </Link>
-        <button onClick={share} className="chip hover:!bg-emerald-500/10 hover:!text-emerald-300" data-testid="share-vacancy">
-          <FaShareAlt className="inline mr-1" /> {lang === "hi" ? "शेयर" : "Share"}
+        <button onClick={() => setShareOpen(true)} className="chip hover:!bg-emerald-500/10 hover:!text-emerald-300" data-testid="share-vacancy">
+          <FaShareAlt className="inline mr-1" /> {lang === "hi" ? "पोस्टर शेयर" : "Share Poster"}
+        </button>
+        <button onClick={share} className="chip hover:!bg-sky-500/10 hover:!text-sky-300" data-testid="share-link">
+          <FaWhatsapp className="inline mr-1" /> {lang === "hi" ? "लिंक कॉपी" : "Copy Link"}
         </button>
       </div>
 
@@ -284,6 +319,11 @@ const VacancyDetail = () => {
           <span><FaClock className="inline mr-1" /> {lang === "hi" ? "अंतिम अपडेट" : "Last updated"}: {new Date(v.fetched_at).toLocaleString()}</span>
         )}
       </div>
+
+      {/* Share poster modal */}
+      {shareOpen && posterVacancy && (
+        <ShareModal vacancy={posterVacancy} onClose={() => setShareOpen(false)} />
+      )}
     </div>
   );
 };

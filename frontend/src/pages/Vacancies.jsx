@@ -5,7 +5,33 @@ import JobAlertSubscribe from "@/components/JobAlertSubscribe";
 import { useAuth } from "@/context/AuthContext";
 import { useI18n } from "@/context/I18nContext";
 import { toast } from "sonner";
-import { FaSearch, FaExternalLinkAlt, FaSync, FaCalendarAlt, FaBriefcase, FaClock, FaChevronRight, FaGraduationCap, FaBuilding, FaFileAlt, FaGlobe } from "react-icons/fa";
+import { FaSearch, FaExternalLinkAlt, FaSync, FaCalendarAlt, FaBriefcase, FaClock, FaChevronRight, FaGraduationCap, FaBuilding, FaFileAlt, FaGlobe, FaShareAlt } from "react-icons/fa";
+import ShareModal from "@/components/poster/ShareModal";
+
+const toPosterVacancy = (v) => {
+  const s = v.structured || {};
+  const highlights = [];
+  if (v.post_name) highlights.push(`Post: ${v.post_name}`);
+  if (v.qualification) highlights.push(v.qualification);
+  if (s.application_fee) highlights.push(`Fee: ${s.application_fee}`);
+  if (s.salary) highlights.push(`Salary: ${s.salary}`);
+  highlights.push("For More Details Read Official Notification");
+  return {
+    id: v.id,
+    jobTitle: v.post_name || v.title || "Government Vacancy",
+    organization: v.organization || v.title || "—",
+    totalPosts: (s.total_posts && String(s.total_posts).match(/\d+/)?.[0]) || s.total_posts || "—",
+    qualification: v.qualification || "As per notification",
+    lastDate: v.last_date_text || s.apply_end || "As per notification",
+    lastDateNote: "",
+    jobType: v.application_mode === "offline" ? "Offline Form Job"
+           : v.application_mode === "online" ? "Online Form Job"
+           : "Government Job",
+    location: s.location || "As per notification",
+    selectionProcess: s.selection_process || "As per official notification",
+    highlights: highlights.slice(0, 5),
+  };
+};
 
 const CAT_LABELS = {
   all: { hi: "सभी", en: "All" },
@@ -57,6 +83,7 @@ const Vacancies = () => {
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [shareVac, setShareVac] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -211,9 +238,20 @@ const Vacancies = () => {
             const expired = days !== null && days < 0;
             return (
               <Link key={v.id || v.url + i} to={`/vacancies/${v.id}`}
-                className={`glass p-4 hover:border-emerald-500/40 transition group block ${expired ? "opacity-60" : ""}`}
+                className={`glass p-4 hover:border-emerald-500/40 transition group block relative ${expired ? "opacity-60" : ""}`}
                 data-testid={`vacancy-${i}`}>
-                <div className="flex items-start justify-between gap-2 mb-2">
+                {/* Share Poster floating button */}
+                <button
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShareVac(toPosterVacancy(v)); }}
+                  className="absolute top-2 right-2 w-8 h-8 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 flex items-center justify-center text-xs z-10 transition-colors"
+                  data-testid={`vacancy-share-${i}`}
+                  title={lang === "hi" ? "पोस्टर बनाएँ व शेयर करें" : "Generate poster & share"}
+                  aria-label="Share vacancy poster"
+                >
+                  <FaShareAlt />
+                </button>
+                <div className="flex items-start justify-between gap-2 mb-2 pr-10">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <span className="chip !text-[10px] uppercase">{CAT_LABELS[v.category]?.[lang] || v.category || "Job"}</span>
                     {v.organization && (
@@ -232,7 +270,6 @@ const Vacancies = () => {
                       </span>
                     )}
                   </div>
-                  <FaChevronRight className="text-slate-500 group-hover:text-emerald-400 transition text-xs shrink-0 mt-1" />
                 </div>
                 <div className="font-semibold text-white text-sm mb-2 leading-snug line-clamp-3">
                   {v.post_name || v.title}
@@ -262,6 +299,9 @@ const Vacancies = () => {
         </div>
       )}
 
+      {shareVac && (
+        <ShareModal vacancy={shareVac} onClose={() => setShareVac(null)} />
+      )}
     </div>
   );
 };
