@@ -1,0 +1,25 @@
+{
+  "summary": "Frontend regression + bug-fix verification for the Vacancy Poster Share feature. Verified: (1) new pill-style share button on vacancy cards with 'पोस्टर'/'POSTER' label on emerald gradient, (2) ShareModal input renders slate text (rgb(15,23,42)) on white bg — no dark-theme inheritance, (3) long shop name 'GRAMIN SUVIDHA KENDRA' fits header without cropping, (4) long job title 'Project Associate I, Senior Project Associate – 4 Posts' auto-scaled and wraps to 2 lines without overflow, (5) empty phone → no empty green pill in header (only banner/footer green icons remain), (6) 3-char 'abc' phone → no pill (length>=4 gate works), (7) valid '+91 81687 62016' → pill renders with visible text, (8) /vacancies/:id has matching emerald-gradient 'पोस्टर शेयर' pill + 'लिंक' chip button. Backend regression via curl: /api/enquiry (with correct schema full_name/mobile/email/service/message) = 200, /api/solar/apply = 410, /vacancies/stats total=430, online=247, offline=88, other=95, sum=430 ✓.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Poster (generated)", "issues": ["TOTAL POSTS shows '—' (em-dash) when structured.total_posts is missing on the vacancy — cosmetic, not part of current bugfix scope. Poster.toPosterVacancy could fall back to parsing post_name (e.g., '4 Posts') to fill this."]}
+    ]
+  },
+  "test_report_links": ["/app/test_reports/iteration_11.json"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Poster.jsx: adaptive fontSize logic is clean but uses inline ternaries — extract helper `pickFontSize(text, thresholds)` if more variants are added.",
+    "ShareModal.jsx: overlay onClick={onClose} + card stopPropagation is correct; consider adding aria-modal='true' and role='dialog' for a11y.",
+    "toPosterVacancy in Vacancies.jsx duplicated in VacancyDetail.jsx (per repo pattern) — move to a shared util to avoid drift."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (3/3 regression)", "frontend": "100% (9/9 bug-fix checks)"},
+  "seed_data_creation": "None. Used real vacancy id 6a79f2a973b3a36f00e80aa5 (55-char post_name) for long-title verification.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All 3 reported bugs are visually verified fixed. Share button now clearly labeled 'पोस्टर'. Screenshots saved at /app/test_reports/modal_typed.png and /app/test_reports/poster_empty_phone.png. Enquiry API requires schema: full_name/mobile/email/service/message (not name/phone).",
+  "rca of the issue": "Bug1 (text overflow): pre-fix used single hard-coded font size in Poster header/title/org — fixed via length-based adaptive fontSize with wordBreak+overflowWrap. Bug2 (empty green pill): pre-fix only checked truthiness of `contact` — fixed to `contact.trim().length >= 4`. Bug3 (invisible input text): pre-fix relied on default color, OS/browser dark-theme autofill overrode it — fixed by explicit `color:'#0f172a'` + `background:'#ffffff'` on input styles and card."
+}

@@ -8,6 +8,9 @@ import { toast } from "sonner";
 import { FaSearch, FaExternalLinkAlt, FaSync, FaCalendarAlt, FaBriefcase, FaClock, FaChevronRight, FaGraduationCap, FaBuilding, FaFileAlt, FaGlobe, FaShareAlt } from "react-icons/fa";
 import ShareModal from "@/components/poster/ShareModal";
 
+const extractPostsFromText = (str) =>
+  str && String(str).match(/(\d[\d,]*)\s*(post|vacan|seat)/i)?.[1];
+
 const toPosterVacancy = (v) => {
   const s = v.structured || {};
   const highlights = [];
@@ -16,11 +19,17 @@ const toPosterVacancy = (v) => {
   if (s.application_fee) highlights.push(`Fee: ${s.application_fee}`);
   if (s.salary) highlights.push(`Salary: ${s.salary}`);
   highlights.push("For More Details Read Official Notification");
+  const totalPosts =
+    (s.total_posts && String(s.total_posts).match(/\d[\d,]*/)?.[0]) ||
+    extractPostsFromText(v.post_name) ||
+    extractPostsFromText(v.title) ||
+    s.total_posts ||
+    "As per notification";
   return {
     id: v.id,
     jobTitle: v.post_name || v.title || "Government Vacancy",
     organization: v.organization || v.title || "—",
-    totalPosts: (s.total_posts && String(s.total_posts).match(/\d+/)?.[0]) || s.total_posts || "—",
+    totalPosts,
     qualification: v.qualification || "As per notification",
     lastDate: v.last_date_text || s.apply_end || "As per notification",
     lastDateNote: "",
@@ -240,16 +249,17 @@ const Vacancies = () => {
               <Link key={v.id || v.url + i} to={`/vacancies/${v.id}`}
                 className={`glass p-4 hover:border-emerald-500/40 transition group block relative ${expired ? "opacity-60" : ""}`}
                 data-testid={`vacancy-${i}`}>
-                {/* Share Poster floating button */}
+                {/* Share Poster floating button — pill style so users understand it's a poster share */}
                 <button
                   type="button"
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShareVac(toPosterVacancy(v)); }}
-                  className="absolute top-2 right-2 w-8 h-8 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 flex items-center justify-center text-xs z-10 transition-colors"
+                  className="absolute top-2 right-2 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white text-[10px] font-bold shadow-lg shadow-emerald-500/30 z-10 transition-transform hover:scale-105 border border-emerald-300/40"
                   data-testid={`vacancy-share-${i}`}
-                  title={lang === "hi" ? "पोस्टर बनाएँ व शेयर करें" : "Generate poster & share"}
+                  title={lang === "hi" ? "पोस्टर बनाएँ और शेयर करें" : "Generate poster & share"}
                   aria-label="Share vacancy poster"
                 >
-                  <FaShareAlt />
+                  <FaShareAlt className="text-[10px]" />
+                  <span className="tracking-wide">{lang === "hi" ? "पोस्टर" : "POSTER"}</span>
                 </button>
                 <div className="flex items-start justify-between gap-2 mb-2 pr-10">
                   <div className="flex flex-wrap items-center gap-1.5">

@@ -72,7 +72,12 @@ const VacancyDetail = () => {
       id: v.id || id,
       jobTitle: v.post_name || v.title || "Government Vacancy",
       organization: v.organization || v.title || "—",
-      totalPosts: (s.total_posts && String(s.total_posts).match(/\d+/)?.[0]) || s.total_posts || "—",
+      totalPosts:
+        (s.total_posts && String(s.total_posts).match(/\d[\d,]*/)?.[0]) ||
+        (v.post_name && String(v.post_name).match(/(\d[\d,]*)\s*(post|vacan|seat)/i)?.[1]) ||
+        (v.title && String(v.title).match(/(\d[\d,]*)\s*(post|vacan|seat)/i)?.[1]) ||
+        s.total_posts ||
+        "As per notification",
       qualification: v.qualification || "As per notification",
       lastDate: v.last_date_text || s.apply_end || "As per notification",
       lastDateNote: s.apply_end && s.apply_end !== v.last_date_text ? "Tentative" : "",
@@ -122,12 +127,20 @@ const VacancyDetail = () => {
         <Link to="/vacancies" className="link-mint inline-flex items-center gap-2 text-sm" data-testid="back-to-vacancies">
           <FaArrowLeft /> {lang === "hi" ? "सभी भर्तियाँ" : "All Vacancies"}
         </Link>
-        <button onClick={() => setShareOpen(true)} className="chip hover:!bg-emerald-500/10 hover:!text-emerald-300" data-testid="share-vacancy">
-          <FaShareAlt className="inline mr-1" /> {lang === "hi" ? "पोस्टर शेयर" : "Share Poster"}
-        </button>
-        <button onClick={share} className="chip hover:!bg-sky-500/10 hover:!text-sky-300" data-testid="share-link">
-          <FaWhatsapp className="inline mr-1" /> {lang === "hi" ? "लिंक कॉपी" : "Copy Link"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShareOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-500/30 transition-transform hover:scale-105 border border-emerald-300/40"
+            data-testid="share-vacancy"
+            title={lang === "hi" ? "पोस्टर बनाएँ और शेयर करें" : "Generate poster & share"}
+          >
+            <FaShareAlt className="text-[11px]" />
+            {lang === "hi" ? "पोस्टर शेयर" : "SHARE POSTER"}
+          </button>
+          <button onClick={share} className="chip hover:!bg-sky-500/10 hover:!text-sky-300" data-testid="share-link" title={lang === "hi" ? "लिंक कॉपी" : "Copy link"}>
+            <FaWhatsapp className="inline mr-1" /> {lang === "hi" ? "लिंक" : "Link"}
+          </button>
+        </div>
       </div>
 
       {/* Header card */}

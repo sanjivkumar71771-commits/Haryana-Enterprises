@@ -169,13 +169,14 @@ const Poster = forwardRef(({ shopName, vacancy, logo, contact }, ref) => {
           <div
             style={{
               fontFamily: "'Anton', sans-serif",
-              fontSize: title.length > 22 ? 30 : 40,
+              fontSize: title.length > 30 ? 24 : title.length > 22 ? 30 : 40,
               color: "#ffffff",
-              lineHeight: 1.02,
+              lineHeight: 1.05,
               letterSpacing: 0.5,
               textTransform: "uppercase",
               textShadow: "0 2px 4px rgba(0,0,0,0.3)",
               wordBreak: "break-word",
+              overflowWrap: "anywhere",
             }}
           >
             {title}
@@ -203,7 +204,7 @@ const Poster = forwardRef(({ shopName, vacancy, logo, contact }, ref) => {
             </span>
             <Star size={12} color="#ffd60a" fill="#ffd60a" />
           </div>
-          {contact && contact.trim() && (
+          {contact && contact.trim().length >= 4 && (
             <div
               style={{
                 display: "inline-flex",
@@ -225,7 +226,7 @@ const Poster = forwardRef(({ shopName, vacancy, logo, contact }, ref) => {
                   letterSpacing: 0.4,
                 }}
               >
-                {contact}
+                {contact.trim()}
               </span>
             </div>
           )}
@@ -259,18 +260,26 @@ const Poster = forwardRef(({ shopName, vacancy, logo, contact }, ref) => {
             >
               NEW JOB UPDATE
             </div>
-            {/* Job title */}
-            <div
-              style={{
-                fontFamily: "'Anton', sans-serif",
-                fontSize: 38,
-                color: "#12307a",
-                lineHeight: 1.02,
-                marginTop: 8,
-              }}
-            >
-              {vacancy.jobTitle}
-            </div>
+            {/* Job title (auto-sizes with length) */}
+            {(() => {
+              const t = String(vacancy.jobTitle || "");
+              const size = t.length > 60 ? 22 : t.length > 40 ? 26 : t.length > 26 ? 32 : 38;
+              return (
+                <div
+                  style={{
+                    fontFamily: "'Anton', sans-serif",
+                    fontSize: size,
+                    color: "#12307a",
+                    lineHeight: 1.05,
+                    marginTop: 8,
+                    wordBreak: "break-word",
+                    overflowWrap: "anywhere",
+                  }}
+                >
+                  {t}
+                </div>
+              );
+            })()}
           </div>
           <div style={{ flexShrink: 0, marginTop: 4 }}>
             <Landmark size={82} color="#9aa3b8" strokeWidth={1.4} />
@@ -304,17 +313,25 @@ const Poster = forwardRef(({ shopName, vacancy, logo, contact }, ref) => {
             >
               <Landmark size={22} color="#ffffff" />
             </div>
-            <span
-              style={{
-                fontFamily: "'Oswald', sans-serif",
-                fontWeight: 600,
-                fontSize: 22,
-                color: "#ffffff",
-                lineHeight: 1.05,
-              }}
-            >
-              {vacancy.organization}
-            </span>
+            {(() => {
+              const org = String(vacancy.organization || "");
+              const size = org.length > 40 ? 15 : org.length > 26 ? 18 : 22;
+              return (
+                <span
+                  style={{
+                    fontFamily: "'Oswald', sans-serif",
+                    fontWeight: 600,
+                    fontSize: size,
+                    color: "#ffffff",
+                    lineHeight: 1.15,
+                    wordBreak: "break-word",
+                    overflowWrap: "anywhere",
+                  }}
+                >
+                  {org}
+                </span>
+              );
+            })()}
           </div>
           <div
             style={{

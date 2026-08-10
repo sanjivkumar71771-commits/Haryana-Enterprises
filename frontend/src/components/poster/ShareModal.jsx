@@ -25,11 +25,13 @@ const card = {
   position: "relative", width: "100%", maxWidth: 780,
   borderRadius: 16, background: "#fff", boxShadow: "0 20px 50px rgba(0,0,0,0.3)", margin: "32px 0",
   fontFamily: "'Poppins', sans-serif",
+  color: "#0f172a",
 };
 const label = { display: "block", fontWeight: 600, color: "#12307a", marginBottom: 6, fontSize: 14 };
 const input = {
   width: "100%", height: 48, borderRadius: 10, border: "1px solid #cbd5e1",
   padding: "0 14px", fontSize: 16, outline: "none", boxSizing: "border-box",
+  background: "#ffffff", color: "#0f172a",
 };
 const btn = (bg) => ({
   height: 44, borderRadius: 10, border: "none", background: bg, color: "#fff",
