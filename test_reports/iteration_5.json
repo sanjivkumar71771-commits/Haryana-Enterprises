@@ -1,0 +1,27 @@
+{
+  "summary": "Comprehensive testing of compliance rebrand (Iteration 5 -> private business, Govt-approved rooftop solar vendor). Backend: 8/8 new compliance tests + previous regression suite unaffected. Frontend: verified home hero + CTAs + Vacancies preview + calculator disclaimer + SchemesInfo cards + Enquiry form end-to-end (POST /api/enquiry -> ENQ-xxxxxxxx ref shown) + Services (6 correct cards + compliance note + card->/enquiry nav) + About disclaimer + all 8 route redirects (/login, /register, /solar/apply, /loan/apply, /dashboard, /csc, /irrigation, /status) + Footer tagline & links. No login/register/dashboard/admin reachable through UI. No 'Apply Now' anywhere on home. Screenshot confirms Hindi & English work cleanly.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_rebrand_compliance.py",
+    "/app/test_reports/pytest/rebrand_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py still contains dead auth code (register/login/session/logout/me, password reset, /admin/* endpoints) even though UI no longer routes to them. Consider gating admin endpoints behind an env flag or moving auth routes to a separate `auth_router.py` and only including it when ENABLE_ADMIN=true, to reduce public attack surface for a compliance-first site.",
+    "server.py is 1221 lines — split into routers (enquiry, vacancies, admin, farming). Currently violates the file-size guideline.",
+    "Old models (SolarApplicationIn, LoanApplicationIn, IrrigationApplicationIn, CSCRequestIn) still accept aadhaar_number / pan_number. Even though the UI no longer submits these, the endpoints /api/solar/apply, /api/loan/apply, /api/csc/apply, /api/irrigation/apply are still live and will happily persist Aadhaar & PAN if called directly. For strict compliance, either (a) remove those routes entirely, or (b) strip aadhaar_number/pan_number fields from those Pydantic models.",
+    "/api/downloads seed still references 'PM Surya Ghar Application Form', 'Solar Subsidy Guidelines', 'Loan Application Checklist' with url='#'. If shown in UI, this may create the impression that Haryana Enterprises processes government subsidy applications — please verify Downloads page copy adds an 'informational only, verify with mnre.gov.in' disclaimer.",
+    "IRRIGATION_SCHEMES dict hard-codes subsidy % ('70%-85%', 'Up to 85%'); this contradicts the loan-info 'no guarantee' policy. If /irrigation page is now removed from UI (redirect -> /services), consider removing this stale data.",
+    "Enquiry endpoint has no rate limiting — could be spam-abused. Recommend adding a simple per-IP rate limit (slowapi) since it's a public unauthenticated endpoint.",
+    "Enquiry model lacks a 'source'/'referrer' field which would help attribute leads (nice-to-have)."
+  ],
+  "updated_files": ["/app/backend/tests/test_rebrand_compliance.py (new)"],
+  "success_rate": {"backend": "100% (8/8 new compliance tests)", "frontend": "100% (24/24 home checks + 6/6 services + enquiry submit success + about disclaimer + 8/8 redirects + all footer checks). One transient locator timeout was retried & passed; one test-script selector prefix mismatch (vacancy-card- vs actual vacancy-preview-card-) — visually confirmed in screenshot that vacancy cards DO render on home."},
+  "test_credentials": "N/A — no auth flows are reachable through UI per rebrand scope.",
+  "seed_data_creation": "Enquiry test docs created in db.enquiries (TEST_rebrand@example.com, test_ui@example.com). Harmless.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Compliance rebrand fully verified. Public UI has NO login/register/dashboard/admin links (auth files remain in /app/frontend/src but are not routed). New POST /api/enquiry endpoint returns {id, ref_no: 'ENQ-<8HEX>', ok:true}. Validation: full_name>=2, mobile 7-15 [0-9+\\-\\s], email must be valid, service 2-80, message 5-1500. Old /api/solar/apply, /api/loan/apply, /api/csc/apply, /api/irrigation/apply routes STILL exist server-side (no longer used by UI) — flag for main agent if strict Aadhaar/PAN removal is required at API level too. Test files: /app/backend/tests/test_rebrand_compliance.py (8 tests), /app/backend/tests/test_vacancies.py (18 tests from prev), /app/backend/tests/test_code_review_fixes.py (has 6 known-failing legacy tests unrelated to this rebrand — safe to ignore).",
+  "rca of the issue": "No issues to RCA — all requested features implemented correctly."
+}

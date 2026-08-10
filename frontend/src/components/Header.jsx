@@ -1,20 +1,17 @@
 import React, { useEffect, useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
+import { Link, NavLink } from "react-router-dom";
 import { useI18n } from "@/context/I18nContext";
 import { S } from "@/lib/strings";
 import Logo from "@/components/Logo";
 import {
-  FaSolarPanel, FaMoneyBillWave, FaBars, FaTimes,
-  FaTachometerAlt, FaFileDownload, FaHeadset, FaHome, FaInfoCircle,
+  FaSolarPanel, FaBars, FaTimes,
+  FaFileDownload, FaHeadset, FaHome, FaInfoCircle,
   FaCogs, FaImages, FaBullhorn, FaQuestionCircle, FaChevronDown,
-  FaAdjust, FaLanguage, FaSignOutAlt, FaIdCard, FaSeedling, FaBriefcase
+  FaAdjust, FaLanguage, FaBriefcase
 } from "react-icons/fa";
 
 const Header = () => {
-  const { user, logout } = useAuth();
   const { lang, toggle, t } = useI18n();
-  const nav = useNavigate();
   const [open, setOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -35,23 +32,18 @@ const Header = () => {
 
   const primaryLinks = [
     { to: "/", label: t(S.nav.home), icon: FaHome },
-    { to: "/solar/apply", label: t(S.nav.solar), icon: FaSolarPanel },
-    { to: "/irrigation", label: t(S.nav.irrigation), icon: FaSeedling },
-    { to: "/loan/apply", label: t(S.nav.loan), icon: FaMoneyBillWave },
-    { to: "/csc", label: t(S.nav.csc), icon: FaIdCard },
+    { to: "/services", label: t(S.nav.services), icon: FaCogs },
+    { to: "/enquiry", label: t(S.nav.enquiry), icon: FaSolarPanel },
     { to: "/vacancies", label: t(S.nav.vacancies), icon: FaBriefcase },
-    { to: "/downloads", label: t(S.nav.downloads), icon: FaFileDownload },
+    { to: "/gallery", label: t(S.nav.gallery), icon: FaImages },
+    { to: "/contact", label: t(S.nav.contact), icon: FaHeadset },
   ];
   const moreLinks = [
     { to: "/about", label: t(S.nav.about), icon: FaInfoCircle },
-    { to: "/services", label: t(S.nav.services), icon: FaCogs },
-    { to: "/gallery", label: t(S.nav.gallery), icon: FaImages },
     { to: "/notices", label: t(S.nav.notices), icon: FaBullhorn },
+    { to: "/downloads", label: t(S.nav.downloads), icon: FaFileDownload },
     { to: "/faq", label: t(S.nav.faq), icon: FaQuestionCircle },
-    { to: "/contact", label: t(S.nav.contact), icon: FaHeadset },
   ];
-
-  const onLogout = async () => { await logout(); nav("/"); };
 
   return (
     <>
@@ -67,18 +59,18 @@ const Header = () => {
               <div className="font-display text-xl font-extrabold text-white tracking-tight">
                 {lang === "hi" ? "हरियाणा एंटरप्राइजेज" : "Haryana Enterprises"}
               </div>
-              <div className="text-[10px] font-semibold text-slate-400 tracking-[0.2em] uppercase mt-0.5">
-                Solar · Subsidy · Loan · Installation
+              <div className="text-[10px] font-semibold text-emerald-400/80 tracking-[0.2em] uppercase mt-0.5">
+                {lang === "hi" ? "सरकार अनुमोदित रूफटॉप सोलर वेंडर" : "Govt. Approved Rooftop Solar Vendor"}
               </div>
             </div>
           </Link>
 
           {/* Right controls */}
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="status-pill" data-testid="status-pill">
+            <a href="tel:8168762016" className="status-pill hover:!bg-emerald-500/20 transition-colors" data-testid="header-call-pill">
               <span className="status-dot"></span>
-              System Status: All Systems Operational
-            </div>
+              {lang === "hi" ? "कॉल करें" : "Call"} · 8168762016
+            </a>
 
             {/* Font size */}
             <div className="a11y-group" data-testid="font-size-group">
@@ -134,26 +126,9 @@ const Header = () => {
 
           <div className="flex-1"></div>
 
-          {user && user !== false ? (
-            <>
-              {user.role === "admin" && (
-                <NavLink to="/admin" className={({ isActive }) => `subnav-link ${isActive ? "active" : ""}`} data-testid="nav-admin">
-                  <FaTachometerAlt /> Admin
-                </NavLink>
-              )}
-              <NavLink to="/dashboard" className={({ isActive }) => `subnav-link ${isActive ? "active" : ""}`} data-testid="nav-dashboard">
-                <FaTachometerAlt /> {t(S.nav.dashboard)}
-              </NavLink>
-              <button onClick={onLogout} className="btn-ghost text-sm" data-testid="topbar-logout-btn">
-                <FaSignOutAlt /> {t(S.nav.logout)}
-              </button>
-            </>
-          ) : (
-            <>
-              <NavLink to="/login" className="btn-ghost text-sm" data-testid="topbar-login-link">{t(S.nav.login)}</NavLink>
-              <NavLink to="/register" className="btn-mint text-sm !py-2 !px-4" data-testid="topbar-register-link">{t(S.nav.register)}</NavLink>
-            </>
-          )}
+          <a href="tel:8168762016" className="btn-mint text-sm !py-2 !px-4" data-testid="topbar-contact-btn">
+            <FaHeadset /> {lang === "hi" ? "फ्री सर्वे बुक करें" : "Book Free Survey"}
+          </a>
         </div>
       </nav>
 
@@ -169,17 +144,8 @@ const Header = () => {
             );
           })}
           <div className="border-t border-white/10 my-2 pt-2 flex gap-2">
-            {user && user !== false ? (
-              <>
-                <NavLink to="/dashboard" onClick={() => setOpen(false)} className="btn-ghost text-sm flex-1"><FaTachometerAlt /> {t(S.nav.dashboard)}</NavLink>
-                <button onClick={() => { onLogout(); setOpen(false); }} className="btn-ghost text-sm flex-1"><FaSignOutAlt /> {t(S.nav.logout)}</button>
-              </>
-            ) : (
-              <>
-                <NavLink to="/login" onClick={() => setOpen(false)} className="btn-ghost text-sm flex-1">{t(S.nav.login)}</NavLink>
-                <NavLink to="/register" onClick={() => setOpen(false)} className="btn-mint text-sm flex-1">{t(S.nav.register)}</NavLink>
-              </>
-            )}
+            <a href="tel:8168762016" onClick={() => setOpen(false)} className="btn-mint text-sm flex-1"><FaHeadset /> {lang === "hi" ? "कॉल करें" : "Call Now"}</a>
+            <a href="https://wa.me/918168762016" target="_blank" rel="noreferrer" onClick={() => setOpen(false)} className="btn-ghost text-sm flex-1">WhatsApp</a>
           </div>
         </div>
       )}

@@ -56,13 +56,13 @@ const Footer = () => {
               </div>
               <div>
                 <div className="font-display text-lg font-bold text-white">{t(S.brand)}</div>
-                <div className="text-[10px] text-slate-500 tracking-widest uppercase font-semibold mt-0.5">Solar · Subsidy · Loan · Installation</div>
+                <div className="text-[10px] text-emerald-400/80 tracking-widest uppercase font-semibold mt-0.5">{lang === "hi" ? "सरकार अनुमोदित रूफटॉप सोलर वेंडर" : "Govt. Approved Rooftop Solar Vendor"}</div>
               </div>
             </div>
             <p className="text-sm text-slate-400 leading-relaxed">
               {t({
-                hi: "सिरसा जिले का MNRE-अनुमोदित सोलर एवं वित्तीय सेवा प्रदाता। PM सूर्य घर योजना का पंजीकृत भागीदार।",
-                en: "Sirsa's MNRE-approved solar & finance provider. Registered partner for PM Surya Ghar Scheme.",
+                hi: "सिरसा जिले का सरकार अनुमोदित रूफटॉप सोलर वेंडर। परामर्श, साइट सर्वे और इंस्टॉलेशन सहायता।",
+                en: "Sirsa's Govt-approved rooftop solar vendor. Consultation, site survey & installation assistance.",
               })}
             </p>
           </div>
@@ -72,9 +72,9 @@ const Footer = () => {
             <ul className="space-y-2 text-sm mt-2">
               <li><Link to="/about" className="text-slate-300 hover:text-emerald-400">→ {t(S.nav.about)}</Link></li>
               <li><Link to="/services" className="text-slate-300 hover:text-emerald-400">→ {t(S.nav.services)}</Link></li>
-              <li><Link to="/solar/apply" className="text-slate-300 hover:text-emerald-400">→ {t(S.nav.solar)}</Link></li>
-              <li><Link to="/loan/apply" className="text-slate-300 hover:text-emerald-400">→ {t(S.nav.loan)}</Link></li>
-              <li><Link to="/status" className="text-slate-300 hover:text-emerald-400">→ {t({ hi: "स्टेटस ट्रैक करें", en: "Track Status" })}</Link></li>
+              <li><Link to="/enquiry" className="text-slate-300 hover:text-emerald-400">→ {t(S.nav.enquiry)}</Link></li>
+              <li><Link to="/vacancies" className="text-slate-300 hover:text-emerald-400">→ {t(S.nav.vacancies)}</Link></li>
+              <li><Link to="/contact" className="text-slate-300 hover:text-emerald-400">→ {t(S.nav.contact)}</Link></li>
             </ul>
           </div>
 

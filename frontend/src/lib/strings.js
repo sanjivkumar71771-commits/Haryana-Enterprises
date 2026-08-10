@@ -1,11 +1,12 @@
 /* Centralized i18n strings */
 export const S = {
   brand: { hi: "हरियाणा एंटरप्राइजेज", en: "Haryana Enterprises" },
-  tagline: { hi: "सोलर एवं वित्तीय सेवाएँ · कागदाना, सिरसा", en: "Solar & Financial Services · Kagdana, Sirsa" },
+  tagline: { hi: "सरकार अनुमोदित रूफटॉप सोलर वेंडर · कागदाना, सिरसा", en: "Govt. Approved Rooftop Solar Vendor · Kagdana, Sirsa" },
   nav: {
     home: { hi: "होम", en: "Home" },
     about: { hi: "हमारे बारे में", en: "About" },
     services: { hi: "सेवाएँ", en: "Services" },
+    enquiry: { hi: "सोलर पूछताछ", en: "Solar Enquiry" },
     solar: { hi: "सोलर", en: "Solar" },
     loan: { hi: "लोन", en: "Loan" },
     csc: { hi: "CSC सेवाएँ", en: "CSC Services" },

@@ -70,6 +70,14 @@ class ContactIn(BaseModel):
     message: str
 
 
+class EnquiryIn(BaseModel):
+    full_name: str = Field(min_length=2, max_length=100)
+    mobile: str = Field(min_length=7, max_length=15)
+    email: EmailStr
+    service: str = Field(min_length=2, max_length=80)
+    message: str = Field(min_length=5, max_length=1500)
+
+
 class SolarApplicationIn(BaseModel):
     application_type: str
     full_name: str
@@ -372,6 +380,17 @@ async def create_contact(payload: ContactIn):
     res = await db.contacts.insert_one(doc)
     log.info(f"Contact submitted: {payload.email} - {payload.subject}")
     return {"id": str(res.inserted_id), "ok": True}
+
+
+# ─────────── Customer Enquiry (public, minimal fields) ───────────
+@api.post("/enquiry")
+async def create_enquiry(payload: EnquiryIn):
+    doc = payload.model_dump()
+    doc["created_at"] = datetime.now(timezone.utc)
+    doc["ref_no"] = f"ENQ-{uuid.uuid4().hex[:8].upper()}"
+    res = await db.enquiries.insert_one(doc)
+    log.info(f"Enquiry submitted: {payload.email} - {payload.service} ({doc['ref_no']})")
+    return {"id": str(res.inserted_id), "ref_no": doc["ref_no"], "ok": True}
 
 
 # ─────────── Solar / Loan Applications ───────────
@@ -1104,49 +1123,53 @@ async def startup():
             "created_at": datetime.now(timezone.utc),
         })
 
-    # Seed notices
+    # Seed notices (informational only - no fake portal claims)
     if await db.notices.count_documents({}) == 0:
         await db.notices.insert_many([
-            {"title_hi": "PM सूर्य घर योजना के लिए आवेदन शुरू - सब्सिडी ₹78,000 तक",
-             "title_en": "PM Surya Ghar Yojana applications open - Subsidy up to ₹78,000",
-             "type": "important", "created_at": datetime.now(timezone.utc)},
-            {"title_hi": "रूफटॉप सोलर पर 40% तक की सब्सिडी उपलब्ध",
-             "title_en": "Up to 40% subsidy available on Rooftop Solar",
+            {"title_hi": "रूफटॉप सोलर के लिए मुफ्त परामर्श उपलब्ध",
+             "title_en": "Free rooftop solar consultation available",
+             "type": "info", "created_at": datetime.now(timezone.utc)},
+            {"title_hi": "साइट असेसमेंट के लिए संपर्क करें · 8168762016",
+             "title_en": "Contact for site assessment · 8168762016",
+             "type": "info", "created_at": datetime.now(timezone.utc)},
+            {"title_hi": "सरकारी सोलर योजनाओं की सामान्य जानकारी के लिए पूछताछ करें",
+             "title_en": "Enquire for general information on government solar schemes",
              "type": "update", "created_at": datetime.now(timezone.utc)},
-            {"title_hi": "सोलर लोन 7.5% ब्याज दर पर उपलब्ध",
-             "title_en": "Solar loans available at 7.5% interest rate",
-             "type": "update", "created_at": datetime.now(timezone.utc)},
-            {"title_hi": "किसानों के लिए विशेष KUSUM योजना",
-             "title_en": "Special KUSUM scheme for farmers",
-             "type": "important", "created_at": datetime.now(timezone.utc)},
             {"title_hi": "हरियाणा एंटरप्राइजेज कागदाना (सिरसा) में सेवा उपलब्ध",
              "title_en": "Haryana Enterprises services available in Kagdana (Sirsa)",
              "type": "info", "created_at": datetime.now(timezone.utc)},
+            {"title_hi": "छात्रों के लिए ताज़ा भर्तियाँ · Vacancies पेज पर देखें",
+             "title_en": "Latest job alerts for students · check Vacancies page",
+             "type": "important", "created_at": datetime.now(timezone.utc)},
         ])
 
-    # Seed FAQs
+    # Seed FAQs (informational only, no fake portal claims)
     if await db.faqs.count_documents({}) == 0:
         await db.faqs.insert_many([
-            {"q_hi": "PM सूर्य घर योजना क्या है?",
-             "q_en": "What is the PM Surya Ghar Yojana?",
-             "a_hi": "यह एक केंद्र सरकार की योजना है जिसमें रूफटॉप सोलर पैनल लगाने पर ₹78,000 तक की सब्सिडी मिलती है और मुफ्त बिजली प्राप्त कर सकते हैं।",
-             "a_en": "It is a central government scheme providing subsidy up to ₹78,000 for installing rooftop solar panels, enabling free electricity."},
-            {"q_hi": "3 kW सोलर सिस्टम की कीमत क्या है?",
-             "q_en": "What is the cost of a 3 kW solar system?",
-             "a_hi": "3 kW सोलर सिस्टम की अनुमानित लागत ₹1.8 – 2.2 लाख होती है, जिस पर सरकारी सब्सिडी के बाद ₹1 लाख तक की बचत होती है।",
-             "a_en": "Approx cost is ₹1.8–2.2 lakh; after government subsidy you can save up to ₹1 lakh."},
-            {"q_hi": "लोन कितने समय में मंजूर होता है?",
-             "q_en": "How long does loan approval take?",
-             "a_hi": "दस्तावेज़ पूरे होने पर आमतौर पर 5–7 कार्य दिवसों में लोन मंजूर हो जाता है।",
-             "a_en": "With complete documents, loan approval usually happens within 5–7 working days."},
-            {"q_hi": "किन दस्तावेज़ों की आवश्यकता है?",
-             "q_en": "Which documents are required?",
-             "a_hi": "आधार कार्ड, पैन कार्ड, बिजली बिल, बैंक स्टेटमेंट, आय प्रमाण, और संपत्ति के दस्तावेज़।",
-             "a_en": "Aadhaar, PAN, electricity bill, bank statement, income proof, and property documents."},
+            {"q_hi": "क्या हरियाणा एंटरप्राइजेज एक सरकारी पोर्टल है?",
+             "q_en": "Is Haryana Enterprises a government portal?",
+             "a_hi": "नहीं। हरियाणा एंटरप्राइजेज एक निजी संस्था है जो सरकार अनुमोदित रूफटॉप सोलर वेंडर के रूप में परामर्श, साइट सर्वे और इंस्टॉलेशन सहायता प्रदान करती है। यह कोई सरकारी पोर्टल नहीं है।",
+             "a_en": "No. Haryana Enterprises is a private business that acts as a Govt-approved rooftop solar vendor providing consultation, site survey and installation assistance. It is not a government portal."},
+            {"q_hi": "रूफटॉप सोलर पर सरकारी योजनाओं की जानकारी कहाँ से मिलेगी?",
+             "q_en": "Where can I find information about government schemes for rooftop solar?",
+             "a_hi": "सरकारी योजनाओं की सामान्य जानकारी हम आपको प्रदान कर सकते हैं। कृपया वर्तमान पात्रता, सब्सिडी नियम और आवेदन प्रक्रिया के लिए pmsuryaghar.gov.in और mnre.gov.in जैसी आधिकारिक साइटों पर सत्यापन करें।",
+             "a_en": "We can share general information about Government schemes. Please verify current eligibility, subsidy rules and application procedures on official sites like pmsuryaghar.gov.in and mnre.gov.in."},
+            {"q_hi": "क्या आप ऋण मंज़ूरी की गारंटी देते हैं?",
+             "q_en": "Do you guarantee loan approval?",
+             "a_hi": "नहीं। वित्तीय सुविधा की उपलब्धता, ब्याज दर, पात्रता एवं शर्तें संबंधित ऋणदाता की वर्तमान नीति और अनुमोदन के अधीन हैं। हम केवल सामान्य जानकारी प्रदान करते हैं।",
+             "a_en": "No. Financing availability, interest rates, eligibility and terms are subject to the respective lender's current policies and approval. We only provide general information."},
+            {"q_hi": "पूछताछ करते समय कौन-सी जानकारी माँगी जाती है?",
+             "q_en": "What information do you ask for during an enquiry?",
+             "a_hi": "केवल पूरा नाम, मोबाइल नंबर, ईमेल, रुचि की सेवा और संदेश। हम कभी भी आधार, PAN, बैंक विवरण, OTP या पासवर्ड नहीं माँगते।",
+             "a_en": "Only Full Name, Mobile, Email, Service of interest and Message. We never ask for Aadhaar, PAN, bank details, OTP or passwords."},
             {"q_hi": "क्या सोलर पैनल पर वारंटी मिलती है?",
              "q_en": "Is warranty offered on solar panels?",
-             "a_hi": "हाँ, पैनलों पर 25 वर्ष तक की परफॉर्मेंस वारंटी और इनवर्टर पर 5–10 वर्ष की वारंटी मिलती है।",
-             "a_en": "Yes, panels come with up to 25-year performance warranty and inverters have 5–10 year warranty."},
+             "a_hi": "आमतौर पर पैनलों पर निर्माता की 25 वर्ष तक की परफॉर्मेंस वारंटी और इनवर्टर पर 5–10 वर्ष की वारंटी उपलब्ध होती है (निर्माता की शर्तों के अनुसार)।",
+             "a_en": "Panels typically come with a manufacturer's up-to-25-year performance warranty; inverters usually carry a 5–10-year warranty (subject to manufacturer terms)."},
+            {"q_hi": "क्या पूछताछ के लिए कोई शुल्क है?",
+             "q_en": "Is there any fee for enquiry?",
+             "a_hi": "नहीं। पूछताछ और प्रारंभिक परामर्श निःशुल्क है। हम कोई एडवांस भुगतान नहीं लेते।",
+             "a_en": "No. Enquiry and initial consultation are free. We do not take any advance payment."},
         ])
 
     # Seed downloads

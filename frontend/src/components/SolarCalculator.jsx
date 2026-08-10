@@ -52,12 +52,12 @@ const SolarCalculator = () => {
         <div className="relative grid grid-cols-1 lg:grid-cols-5 gap-8">
           {/* Left: Inputs */}
           <div className="lg:col-span-2">
-            <div className="section-eyebrow">Live Calculator</div>
+            <div className="section-eyebrow">{lang === "hi" ? "अनुमानित गणना" : "Indicative Estimate"}</div>
             <h2 className="section-title !text-3xl mb-2">
               {lang === "hi" ? (<><span className="text-amber-400">सोलर बचत</span> कैलकुलेटर</>) : (<><span className="text-amber-400">Solar Savings</span> Calculator</>)}
             </h2>
             <p className="text-slate-400 text-sm mb-6">
-              {lang === "hi" ? "अपना बिजली बिल और छत का क्षेत्र डालें — तुरंत जानें कितनी बचत होगी।" : "Enter your bill and roof area — see instant savings."}
+              {lang === "hi" ? "अपना बिजली बिल और छत का क्षेत्र डालें — अनुमानित मूल्यांकन देखें।" : "Enter your bill and roof area — view an indicative estimate."}
             </p>
 
             <div className="space-y-5">
@@ -98,8 +98,8 @@ const SolarCalculator = () => {
                 </div>
               </div>
 
-              <Link to={`/solar/apply?type=pm_surya_ghar`} className="btn-mint w-full" data-testid="calc-apply-btn">
-                <FaFileSignature /> {lang === "hi" ? "अभी आवेदन करें" : "Apply Now"} <FaChevronRight />
+              <Link to={`/enquiry?service=Solar%20Consultation`} className="btn-mint w-full" data-testid="calc-enquiry-btn">
+                <FaFileSignature /> {lang === "hi" ? "सोलर पूछताछ करें" : "Solar Enquiry"} <FaChevronRight />
               </Link>
             </div>
           </div>
@@ -116,18 +116,18 @@ const SolarCalculator = () => {
               />
               <MetricCard
                 icon={FaCoins}
-                label={lang === "hi" ? "PM सूर्य घर सब्सिडी" : "PM Surya Ghar Subsidy"}
+                label={lang === "hi" ? "संभावित सरकारी लाभ" : "Possible Govt. Benefit"}
                 value={"− " + inr(result.subsidy)}
                 tint="text-amber-400"
-                sub={lang === "hi" ? "केंद्र सरकार द्वारा" : "Central Government"}
+                sub={lang === "hi" ? "पात्रता के अधीन" : "Subject to eligibility"}
               />
               <MetricCard
                 icon={FaSolarPanel}
-                label={lang === "hi" ? "आपका शुद्ध निवेश" : "Your Net Investment"}
+                label={lang === "hi" ? "अनुमानित शुद्ध लागत" : "Est. Net Cost"}
                 value={inr(result.net)}
                 tint="text-emerald-400"
                 highlight
-                sub={lang === "hi" ? "सब्सिडी काटने के बाद" : "After subsidy"}
+                sub={lang === "hi" ? "सरकारी लाभ के बाद (अनुमानित)" : "After possible benefit (estimated)"}
               />
               <MetricCard
                 icon={FaBolt}
@@ -153,10 +153,21 @@ const SolarCalculator = () => {
               />
             </div>
 
-            <div className="mt-4 glass p-4 text-xs text-slate-400 leading-relaxed">
-              <b className="text-emerald-400">*</b> {lang === "hi"
-                ? "अनुमानित गणना: औसत ₹8/यूनिट, 1 kW = 1500 यूनिट/वर्ष, 1 kW लगभग 100 sqft, ₹70,000/kW। PM सूर्य घर योजना (3+ kW पर ₹78,000 सब्सिडी)।"
-                : "Estimates: avg ₹8/unit, 1 kW ≈ 1500 units/yr, ~100 sqft/kW, ₹70,000/kW. PM Surya Ghar Yojana subsidy: up to ₹78,000 (for 3+ kW)."}
+            <div className="mt-4 glass p-4 text-xs text-slate-400 leading-relaxed" data-testid="calc-disclaimer">
+              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[10px] font-semibold uppercase tracking-widest mb-2">
+                {lang === "hi" ? "अनुमानित मूल्यांकन" : "Indicative Estimate"}
+              </div>
+              <p>
+                {lang === "hi"
+                  ? "यह कैलकुलेटर केवल सामान्य अनुमान के लिए है। वास्तविक बचत, बिजली उत्पादन, प्रोजेक्ट लागत और लागू लाभ सिस्टम की क्षमता, स्थान, बिजली खपत, उपकरण और लागू नियमों के अनुसार भिन्न हो सकते हैं।"
+                  : "This calculator is for general estimation only. Actual savings, generation, project cost and applicable benefits may vary depending on system size, location, electricity consumption, equipment and applicable rules."}
+              </p>
+              <p className="mt-2 text-slate-500">
+                <b>{lang === "hi" ? "गणना आधार: " : "Basis: "}</b>
+                {lang === "hi"
+                  ? "औसत ₹8/यूनिट · 1 kW ≈ 1500 यूनिट/वर्ष · ~100 sqft/kW · ₹70,000/kW।"
+                  : "Avg ₹8/unit · 1 kW ≈ 1500 units/yr · ~100 sqft/kW · ₹70,000/kW."}
+              </p>
             </div>
           </div>
         </div>

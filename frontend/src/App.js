@@ -4,7 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import AOS from "aos";
 import { Toaster } from "sonner";
 
-import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { AuthProvider } from "@/context/AuthContext";
 import { I18nProvider } from "@/context/I18nContext";
 
 import Header from "@/components/Header";
@@ -14,25 +14,12 @@ import ProcessingLoader from "@/components/ProcessingLoader";
 import Home from "@/pages/Home";
 import About from "@/pages/About";
 import Services from "@/pages/Services";
-import SolarApply from "@/pages/SolarApply";
-import LoanApply from "@/pages/LoanApply";
-import Login from "@/pages/Login";
-import Register from "@/pages/Register";
-import Dashboard from "@/pages/Dashboard";
+import Enquiry from "@/pages/Enquiry";
 import Contact from "@/pages/Contact";
 import FAQ from "@/pages/FAQ";
 import Downloads from "@/pages/Downloads";
 import Notices from "@/pages/Notices";
 import Gallery from "@/pages/Gallery";
-import StatusLookup from "@/pages/StatusLookup";
-import AuthCallback from "@/pages/AuthCallback";
-import AdminPanel from "@/pages/AdminPanel";
-import ForgotPassword from "@/pages/ForgotPassword";
-import ResetPassword from "@/pages/ResetPassword";
-import CSCServices from "@/pages/CSCServices";
-import CSCApply from "@/pages/CSCApply";
-import MicroIrrigation from "@/pages/MicroIrrigation";
-import IrrigationApply from "@/pages/IrrigationApply";
 import Vacancies from "@/pages/Vacancies";
 import VacancyDetail from "@/pages/VacancyDetail";
 
@@ -42,32 +29,19 @@ const ScrollToTop = () => {
   return null;
 };
 
-const Protected = ({ children }) => {
-  const { user, ready } = useAuth();
-  const loc = useLocation();
-  if (!ready) return <div className="p-10 text-center text-slate-500">Loading...</div>;
-  if (!user || user === false) return <Navigate to="/login" state={{ from: loc.pathname }} replace />;
-  return children;
-};
-
-/** Router that synchronously detects Emergent Auth session_id in URL hash. */
 function AppRouter() {
-  const location = useLocation();
-  // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
-  if (location.hash?.includes("session_id=")) {
-    return <AuthCallback />;
-  }
   return (
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/about" element={<About />} />
       <Route path="/services" element={<Services />} />
-      <Route path="/solar/apply" element={<SolarApply />} />
-      <Route path="/loan/apply" element={<LoanApply />} />
-      <Route path="/csc" element={<CSCServices />} />
-      <Route path="/csc/apply" element={<CSCApply />} />
-      <Route path="/irrigation" element={<MicroIrrigation />} />
-      <Route path="/irrigation/apply" element={<IrrigationApply />} />
+      <Route path="/enquiry" element={<Enquiry />} />
+      <Route path="/solar/apply" element={<Navigate to="/enquiry" replace />} />
+      <Route path="/loan/apply" element={<Navigate to="/enquiry?service=Solar%20Financing%20Information" replace />} />
+      <Route path="/csc" element={<Navigate to="/services" replace />} />
+      <Route path="/csc/apply" element={<Navigate to="/enquiry" replace />} />
+      <Route path="/irrigation" element={<Navigate to="/services" replace />} />
+      <Route path="/irrigation/apply" element={<Navigate to="/enquiry" replace />} />
       <Route path="/vacancies" element={<Vacancies />} />
       <Route path="/vacancies/:id" element={<VacancyDetail />} />
       <Route path="/gallery" element={<Gallery />} />
@@ -75,13 +49,10 @@ function AppRouter() {
       <Route path="/downloads" element={<Downloads />} />
       <Route path="/faq" element={<FAQ />} />
       <Route path="/contact" element={<Contact />} />
-      <Route path="/status" element={<StatusLookup />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
-      <Route path="/admin" element={<Protected><AdminPanel /></Protected>} />
+      <Route path="/login" element={<Navigate to="/enquiry" replace />} />
+      <Route path="/register" element={<Navigate to="/enquiry" replace />} />
+      <Route path="/dashboard" element={<Navigate to="/" replace />} />
+      <Route path="/status" element={<Navigate to="/contact" replace />} />
       <Route path="*" element={
         <div className="max-w-3xl mx-auto px-4 py-20 text-center">
           <h1 className="font-display text-6xl font-extrabold text-emerald-400">404</h1>
