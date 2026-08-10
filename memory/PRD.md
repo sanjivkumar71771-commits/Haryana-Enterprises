@@ -1,143 +1,78 @@
-# HARYANA ENTERPRISES — PRD
+# Haryana Enterprises — PRD
 
-## Business
-- HARYANA ENTERPRISES · 200 Mtr From Bus Stand, Begu–Bhadra Road, Kagdana, Sirsa, Haryana
-- Phone 8167862016 · WhatsApp 8168762016 · haryanaenterpriseskagdana@gmail.com
+## Original Problem Statement
+A comprehensive web portal for **Haryana Enterprises** (Kagdana, Sirsa) — a **private, Government-approved rooftop solar vendor**. Bilingual (Hindi/English), dark-glassmorphism theme.
 
-## Stack (as-built)
-- React 19 + Tailwind + shadcn + AOS + FontAwesome + jsPDF (client-side PDF)
-- FastAPI + Motor (async MongoDB) + bcrypt + PyJWT + httpx (Emergent OAuth)
-- MongoDB — `haryana_enterprises` DB
-- Auth: dual — JWT httpOnly cookies for email/password + session_token cookies for Emergent Google OAuth
+## Current Positioning (Feb 2026 rebrand)
+> **Haryana Enterprises is a private business, NOT a government portal.**
+> It provides rooftop solar consultation, site survey, installation assistance and general information on government solar schemes.
 
-## Implemented — Iteration 3 (30 Jul 2026) — Google OAuth + Admin + Calculator
-### Google OAuth (Emergent-managed, no more demo stub)
-- Backend: POST `/api/auth/session` calls `https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data` and upserts user by email, stores session_token in `user_sessions` with 7-day expiry, sets httpOnly session_token cookie
-- Auth helper now checks session_token OR JWT access_token
-- Frontend: AuthCallback route (detected synchronously via `location.hash`) exchanges `session_id` and lands on /dashboard
-- Login page "Continue with Google" button redirects to `https://auth.emergentagent.com/?redirect=<origin>/dashboard`
-- AuthContext skips /auth/me when returning from OAuth callback
+## Core Requirements (POST-COMPLIANCE REBRAND)
+1. Site must NOT resemble a government portal — no "Apply Now", "Portal Login", "Government Registration", "System Status" pill, or fake tracking flows.
+2. **No login/register/dashboard/admin** in public UI (files retained but not routed).
+3. Only a single **Solar Enquiry form** collects data — Name, Mobile, Email, Service, Message. Never Aadhaar/PAN/bank/OTP/passwords.
+4. **Solar Calculator** must display "Indicative Estimate" label + full disclaimer.
+5. Government scheme content is informational only; must include disclaimers pointing to official sources (pmsuryaghar.gov.in, mnre.gov.in).
+6. Solar financing content: "does not guarantee loan approval" disclaimer mandatory.
+7. **Vacancies** section (FreeJobAlert scraper) must remain fully functional and PROMINENT (for students).
+8. Direct-API attack surface closed: `/solar/apply`, `/loan/apply`, `/csc/apply`, `/irrigation/apply` all return HTTP 410 Gone.
 
-### Admin Panel
-- Backend: all routes gated by `require_admin` dependency
-  - GET `/api/admin/stats` — user, solar, loan, contact counts + pending/approved breakdown
-  - GET `/api/admin/users` — full user list (no password_hash)
-  - GET `/api/admin/solar` and `/api/admin/loan` — all applications
-  - GET `/api/admin/contacts` — contact messages
-  - PATCH `/api/admin/solar/{ref_no}/status` and `/api/admin/loan/{ref_no}/status` — update status (submitted/under_review/approved/rejected)
-  - POST `/api/admin/notices` and DELETE `/api/admin/notices/{id}` — notice CMS
-- Frontend: `/admin` route with tabs (Overview / Users / Solar / Loan / Contacts / Notices), stats cards, editable status dropdowns, notice CMS form
+## Architecture
+- **Frontend**: React + Tailwind (dark glassmorphism), React Router, i18n Hindi/English
+- **Backend**: FastAPI + Motor (MongoDB) + APScheduler (vacancy scraper every 6h) + BeautifulSoup
+- **Email**: DEV mode (console log) — real SMTP not configured
 
-### Solar Savings Calculator
-- Live widget on Home page with sliders (monthly bill + roof area)
-- Computes: recommended kW, cost, PM Surya Ghar subsidy (₹30k/60k/78k slabs), net investment, monthly & yearly savings, payback years, 25-year lifetime savings, CO₂ reduction
-- Direct CTA to Solar Apply
+## Key Routes
+- `/` Home (hero → services → vacancies preview → stats → why → testimonials → calculator → schemes info → CTA)
+- `/enquiry` Solar Enquiry form
+- `/services` Rooftop Solar Services (6 cards)
+- `/vacancies`, `/vacancies/:id` Job Alerts (from FreeJobAlert.com)
+- `/about`, `/contact`, `/faq`, `/gallery`, `/notices`, `/downloads`
+- Redirects: `/login`, `/register`, `/solar/apply`, `/loan/apply`, `/csc`, `/irrigation`, `/dashboard`, `/status` → mapped to compliant pages
 
-### User-id migration
-- All users now have `user_id` UUID field (new pattern from Emergent playbook)
-- Legacy users backfilled at startup
-- get_current_user accepts both ObjectId sub and user_id sub
+## Key API Endpoints
+- `POST /api/enquiry` → `{id, ref_no: "ENQ-xxxxxxxx", ok}` — the only application endpoint
+- `POST /api/contact` → contact form
+- `GET  /api/vacancies?limit=N` → list vacancies (from scraper)
+- `GET  /api/vacancies/{id}` → full article with structured data
+- `POST /api/subscribe`, `POST /api/unsubscribe` → job-alert subscription
+- `GET  /api/notices`, `/api/faqs`, `/api/downloads`
+- `POST /api/{solar,loan,csc,irrigation}/apply` → **HTTP 410 Gone** (compliance)
 
-## Testing
-- Backend: **40/40 tests passing** (iteration_2 report + updated tests)
-- All admin auth gates verified (401 without auth, 403 for non-admin, 200 for admin)
-- User_id UUID flow end-to-end verified
-- Logout clears both JWT and session_token cookies + session db record
+## MongoDB Collections
+- `enquiries` — new compliant enquiries (name/mobile/email/service/message + ref_no)
+- `vacancies` — scraped FreeJobAlert data
+- `vacancy_subscriptions` — email subscribers
+- `notices`, `faqs`, `downloads`, `contacts`
+- `solar_applications`, `loan_applications`, `csc_requests`, `irrigation_applications` — legacy (endpoints now blocked; kept for admin history if ever re-enabled)
 
-## Test Credentials
-- Admin: `admin@haryanaenterprises.com` / `Admin@123` (role=admin)
-- User: `user@test.com` / `Test@123` (role=user)
-- Google: real Emergent Google Auth flow — no test credentials
+## Implementation Log (Feb 2026)
+### Iteration 5 (compliance rebrand)
+- Removed all portal/govt-look language & "Apply Now" CTAs
+- Removed public login/register/dashboard/admin (kept file stubs)
+- Added new `/api/enquiry` endpoint + `Enquiry.jsx` page
+- Blocked `/api/{solar,loan,csc,irrigation}/apply` with HTTP 410
+- Added `VacanciesPreview` section on Home page (shows 6 latest jobs)
+- Added compliance disclaimers to SolarCalculator, SchemesInfo, Services, About
+- Reseeded notices, FAQs, downloads with compliant informational content
+- Updated Footer tagline & links; updated Header nav
+- Testing agent report: `/app/test_reports/iteration_5.json` (100% pass)
 
-## Backlog
-### P1
-- SMTP email confirmations on application submission (Resend/SendGrid)
-- Document upload for loan/solar applications (Aadhaar/PAN/bank statement)
-- Chart.js analytics charts on admin dashboard
-- Password reset email flow
-### P2
-- WhatsApp OTP / SMS notifications (Twilio)
-- Brute-force lockout on `/auth/login`
-- CSV / Excel export from admin tables
-- Chatbot / consultation booking widget
+## Backlog (P1 → P2)
+- **P1** Emergent production deployment blocked (`await_phishing` filter) — pending support team whitelisting
+- **P1** Connect custom domain `hrdigitalservices.in` (blocked on deploy)
+- **P2** Real SMTP setup (SendGrid/Resend) for enquiry auto-response emails
+- **P2** State-wise filter on vacancies list
+- **P2** Save-for-later bookmarks on vacancies
+- **P2** Rate limit `POST /api/enquiry` (public unauth endpoint)
+- **P2** Split `backend/server.py` into routers (currently 1170+ lines)
+- **P3** Fix legacy `tests/test_code_review_fixes.py` failing tests (Mongo env mocking)
 
+## Compliance Guardrails (enforced)
+- We **never** collect Aadhaar, PAN, bank details, OTP or passwords
+- Never claim "guaranteed" loan approval or fixed subsidy amounts
+- Government-scheme content always paired with a "verify at official sources" disclaimer
+- Site clearly disclaims "private business, not a government portal"
 
-## Implemented — Iteration 5 (08 Aug 2026) — Vacancies self-hosted detail + Scraper fix
-### FreeJobAlert scraper — Bug fix
-- Old scraper picked the first `<a>` inside every `<tr>`, capturing "Get Details" as title
-- Rewrote `backend/scrapers.py` `_parse_row()` to map the 7-column layout: td1=organization, td2=post_name, td3=qualification, td5=last_date, and pull the URL from the last anchor
-- New fields persisted: `organization`, `post_name`, `qualification`, `post_date_text`, `last_date_text`, `category` (adds "medical")
-- Swapped dead `/upcoming-sarkari-naukri/` (404) with `/sarkari-naukri/`
-- 250 real vacancies with clean titles like "PNB — Local Bank Officer – 545 Posts"
-
-### Users no longer leave the site
-- Detail article scraper `fetch_article_detail(url)` extracts heading, description, important action links (apply / notification PDF / official website) and cleaned `content_html` from `.entry-content`
-- Strips ads, telegram/newsletter self-promo, and internal freejobalert.com nav
-- Backend `GET /api/vacancies/{id}` lazy-scrapes on first view and caches for 24h
-- New `/vacancies/:id` route + `VacancyDetail.jsx` renders: header (badges + urgency), quick-facts grid, colored action-link cards, and full article inside `.vacancy-article` styled block
-- Vacancy list cards now navigate internally via `<Link>` (Apply link only appears inside the detail page)
-
-### UI enhancements
-- Qualification dropdown filter (10th / 12th / ITI / Diploma / Graduate / B.Tech / PG)
-- Organization + qualification chips on every card
-- Days-remaining indicator with red urgency (≤3 days), "closed" state for expired
-- Bilingual (Hindi/English) on detail page + share button
-
-### Backend
-- `list_vacancies` accepts `qualification` filter and searches org/post_name too
-- `doc_public` serializes all datetime fields (not just `created_at`)
-
-## Backlog (updated)
-### P0
-- (none)
-### P1
-- Railway deployment guidance (guide in /app/DEPLOY_GUIDE.md, user requested zero-to-live walkthrough)
-- Email/WhatsApp alert subscription for new vacancies
-### P2
-- Save/bookmark vacancy for logged-in users
-- Deep vacancy search filters (state, salary range)
-- Brute-force lockout, CSV export
-
-## Implemented — Iteration 6 (08 Aug 2026) — Structured facts + Job Alert Subscription
-### Structured detail extraction
-- `backend/scrapers.py` `_extract_structured_facts()` scans article for labelled facts and picks the next line as value (prefers numeric/currency lines)
-- Extracted fields: `total_posts` (+ `total_posts_num`), `apply_start`, `apply_end`, `application_fee` (multi-tier joined with " · "), `salary`, `age_limit`, `selection`, `job_location`
-- Application fee parser captures 2-6 lines under the "Application Fee" heading and stops at next section
-
-### Detail page UI overhaul
-- Hero row of 4 glossy stat cards (`.stat-card` in index.css) — emerald (Total Posts), sky (Apply Start), amber/red-glow (Last Date + countdown), violet (Application Fee)
-- Secondary detail rows (`.detail-row`) with icon+label+value for Salary, Qualification, Age Limit, Selection Process, Job Location
-- Multi-tier fee breakdown shown as bullet grid when fee contains " · "
-- Pulsing red-glow border for last-date cards with ≤3 days remaining
-- Light-theme overrides for stat-card and detail-row
-
-### Free Job Alert Subscription
-- New Mongo collection `vacancy_subscriptions` (email, categories[], qualifications[], keyword, active, unsubscribe_token, last_notified_at)
-- Endpoints:
-  - `POST /api/vacancy-alerts/subscribe` — validates ≥1 preference, upserts by email, sends confirmation email (logged in DEV via `emails.py`)
-  - `GET /api/vacancy-alerts/status?email=…` — returns current prefs
-  - `POST /api/vacancy-alerts/unsubscribe` — token-based deactivation
-- Fan-out on new vacancies:
-  - `_notify_subscribers_of_new_vacancies()` matches each subscriber against `category`, `qualification` substring, and `keyword` blob (title+post_name+org+qualification)
-  - Called from both the APScheduler 6-hour job AND admin manual refresh — diff computed via `before_urls` snapshot
-  - Email body links back to our own `/vacancies/{id}` route (uses `FRONTEND_URL` env var)
-- Frontend `JobAlertSubscribe.jsx` — collapsible glass card with email input, category chips (10), qualification chips (7), optional keyword, submit button; success state with checkmark card
-
-### Deployment guide
-- Rewrote `/app/DEPLOY_GUIDE.md` with a zero-to-live Railway walkthrough (Parts 1-3): GitHub push, MongoDB Atlas free cluster, Railway backend+frontend setup with all env vars, custom domain, cost estimate, and troubleshooting
-
-### Testing
-- 75/75 backend + all critical frontend flows passing (iteration_4.json)
-- Zero critical issues. Testing agent flagged only P2 refactors (route file split, async concurrency limit for real SMTP).
-
-## Backlog (updated)
-### P1
-- Railway deploy — user needs to click "Save to GitHub" and follow /app/DEPLOY_GUIDE.md
-- Split server.py into /app/backend/routers/ (vacancies, subscriptions, admin, applications) — nearing 1200 lines
-### P2
-- Whitelist categories server-side on subscribe
-- Rate-limit unsubscribe (token enumeration guard)
-- Real SMTP integration (Resend or SendGrid free tier) — replace emails.py DEV logger
-- Background lazy article scrape + per-URL lock to avoid 3-5s block on cold detail hit
-- Save/bookmark vacancy for logged-in users, state-wise filter
-
+## Credentials
+Public UI has **no login**. Admin routes (`/admin/*`) still exist on backend for legacy data access but no longer linked from UI. See `/app/memory/test_credentials.md`.

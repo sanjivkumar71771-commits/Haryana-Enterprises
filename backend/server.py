@@ -402,66 +402,18 @@ async def _optional_user(request: Request):
 
 
 @api.post("/solar/apply")
-async def solar_apply(payload: SolarApplicationIn, request: Request):
-    doc = payload.model_dump()
-    doc["created_at"] = datetime.now(timezone.utc)
-    doc["status"] = "submitted"
-    doc["ref_no"] = f"SOL-{uuid.uuid4().hex[:8].upper()}"
-    u = await _optional_user(request)
-    doc["user_id"] = u["id"] if u else None
-    res = await db.solar_applications.insert_one(doc)
-    doc["_id"] = str(res.inserted_id)
-
-    # Send confirmation email (best-effort, non-blocking failure)
-    try:
-        subject, html = render_confirmation(
-            "solar", payload.full_name, doc["ref_no"],
-            extra_lines=[
-                f"Application type: {payload.application_type}",
-                f"Property: {payload.property_type} · {payload.city}, {payload.state} - {payload.pincode}",
-                (f"Estimated capacity: {payload.estimated_kw} kW" if payload.estimated_kw else None),
-                (f"Monthly bill: ₹{payload.monthly_bill:,.0f}" if payload.monthly_bill else None),
-            ],
-        )
-        send_email(payload.email, subject, html)
-    except Exception as e:
-        log.warning(f"Failed to send solar confirmation email: {e}")
-
-    return {"application": doc_public(doc)}
+@api.post("/loan/apply")
+async def _deprecated_solar_loan_apply():
+    raise HTTPException(
+        status_code=410,
+        detail="This application endpoint has been discontinued. Please use the customer enquiry form at /api/enquiry (Name, Mobile, Email, Service, Message only). We no longer collect Aadhaar, PAN or bank details.",
+    )
 
 
 @api.get("/solar/my")
 async def my_solar_apps(user=Depends(get_current_user)):
     apps = await db.solar_applications.find({"user_id": user["id"]}).sort("created_at", -1).to_list(200)
     return [doc_public(a) for a in apps]
-
-
-@api.post("/loan/apply")
-async def loan_apply(payload: LoanApplicationIn, request: Request):
-    doc = payload.model_dump()
-    doc["created_at"] = datetime.now(timezone.utc)
-    doc["status"] = "submitted"
-    doc["ref_no"] = f"LOAN-{uuid.uuid4().hex[:8].upper()}"
-    u = await _optional_user(request)
-    doc["user_id"] = u["id"] if u else None
-    res = await db.loan_applications.insert_one(doc)
-    doc["_id"] = str(res.inserted_id)
-
-    try:
-        subject, html = render_confirmation(
-            "loan", payload.full_name, doc["ref_no"],
-            extra_lines=[
-                f"Loan type: {payload.loan_type}",
-                f"Amount requested: ₹{payload.loan_amount:,.0f}",
-                f"Tenure: {payload.loan_tenure_months} months",
-                f"Monthly income: ₹{payload.monthly_income:,.0f}",
-            ],
-        )
-        send_email(payload.email, subject, html)
-    except Exception as e:
-        log.warning(f"Failed to send loan confirmation email: {e}")
-
-    return {"application": doc_public(doc)}
 
 
 @api.get("/loan/my")
@@ -762,58 +714,12 @@ async def csc_services_list():
 
 
 @api.post("/csc/apply")
-async def csc_apply(payload: CSCRequestIn, request: Request):
-    service, category = find_service(payload.service_id)
-    if not service:
-        raise HTTPException(status_code=400, detail="Unknown CSC service")
-
-    doc = payload.model_dump()
-    doc["created_at"] = datetime.now(timezone.utc)
-    doc["status"] = "submitted"
-    doc["ref_no"] = f"CSC-{uuid.uuid4().hex[:8].upper()}"
-    doc["service_hi"] = service["hi"]
-    doc["service_en"] = service["en"]
-    doc["category_id"] = category["id"]
-    doc["fee"] = service["fee"]
-
-    u = await _optional_user(request)
-    doc["user_id"] = u["id"] if u else None
-
-    res = await db.csc_requests.insert_one(doc)
-    doc["_id"] = str(res.inserted_id)
-
-    # Email confirmation
-    try:
-        extra = [
-            f"Service: {service['en']}",
-            (f"Custom: {payload.custom_service}" if payload.custom_service else None),
-        ]
-        subject = f"[Haryana Enterprises] CSC Request — {doc['ref_no']}"
-        html = f"""
-        <div style="font-family: Arial; max-width:560px; margin:0 auto;">
-          <div style="background:#0e6b3a; color:#fff; padding:18px; text-align:center;">
-            <h2 style="margin:0;">HARYANA ENTERPRISES · CSC</h2>
-          </div>
-          <div style="padding:22px; background:#f7f9f8;">
-            <p>Hello <b>{payload.full_name}</b>,</p>
-            <p>Your CSC service request has been received.</p>
-            <div style="background:#fff; border-left:4px solid #f57c00; padding:12px 16px; margin:14px 0;">
-              <div style="font-size:11px; color:#888; text-transform:uppercase; letter-spacing:2px;">Reference</div>
-              <div style="font-size:22px; color:#0e6b3a; font-weight:700;">{doc['ref_no']}</div>
-              <div style="margin-top:6px; color:#333;">{service['en']}</div>
-            </div>
-            <p>Our CSC operator will contact you within 24 hours.</p>
-            <p style="color:#666; font-size:13px; margin-top:24px;">
-              — Team Haryana Enterprises · Kagdana, Sirsa · +91 8167862016
-            </p>
-          </div>
-        </div>
-        """
-        send_email(payload.email, subject, html)
-    except Exception as e:
-        log.warning(f"Failed to send CSC email: {e}")
-
-    return {"request": doc_public(doc)}
+@api.post("/irrigation/apply")
+async def _deprecated_csc_irrigation_apply():
+    raise HTTPException(
+        status_code=410,
+        detail="This application endpoint has been discontinued. Please use the customer enquiry form at /api/enquiry (Name, Mobile, Email, Service, Message only). We no longer collect Aadhaar, PAN or bank details.",
+    )
 
 
 @api.get("/csc/my")
@@ -854,50 +760,11 @@ async def irrigation_schemes():
 
 
 @api.post("/irrigation/apply")
-async def irrigation_apply(payload: IrrigationApplicationIn, request: Request):
-    if payload.scheme_type not in IRRIGATION_SCHEMES:
-        raise HTTPException(status_code=400, detail="Unknown scheme type")
-    doc = payload.model_dump()
-    doc["created_at"] = datetime.now(timezone.utc)
-    doc["status"] = "submitted"
-    doc["ref_no"] = f"IRR-{uuid.uuid4().hex[:8].upper()}"
-    sch = IRRIGATION_SCHEMES[payload.scheme_type]
-    doc["scheme_hi"] = sch["hi"]
-    doc["scheme_en"] = sch["en"]
-
-    u = await _optional_user(request)
-    doc["user_id"] = u["id"] if u else None
-
-    res = await db.irrigation_applications.insert_one(doc)
-    doc["_id"] = str(res.inserted_id)
-
-    try:
-        subject = f"[Haryana Enterprises] Micro Irrigation Application — {doc['ref_no']}"
-        html = f"""
-        <div style="font-family:Arial; max-width:560px; margin:0 auto;">
-          <div style="background:#0e6b3a; color:#fff; padding:18px; text-align:center;">
-            <h2 style="margin:0;">HARYANA ENTERPRISES · Farm Services</h2>
-          </div>
-          <div style="padding:22px; background:#f7f9f8;">
-            <p>Hello <b>{payload.full_name}</b>,</p>
-            <p>Your application for <b>{sch['en']}</b> ({sch['hi']}) has been received. Subsidy applicable: <b>{sch['subsidy']}</b>.</p>
-            <div style="background:#fff; border-left:4px solid #f57c00; padding:12px 16px; margin:14px 0;">
-              <div style="font-size:11px; color:#888; text-transform:uppercase; letter-spacing:2px;">Reference</div>
-              <div style="font-size:22px; color:#0e6b3a; font-weight:700;">{doc['ref_no']}</div>
-            </div>
-            <p>Our field officer will contact you within 24 hours. Please keep Aadhaar, land papers (Jamabandi/Khasra) and bank passbook ready.</p>
-            <p style="color:#666; font-size:13px; margin-top:24px;">
-              — Team Haryana Enterprises · Kagdana, Sirsa
-              <br>Sanjay Fageria: 98136-64230 · Anoop Beniwal: 90974-10008
-            </p>
-          </div>
-        </div>
-        """
-        send_email(payload.email, subject, html)
-    except Exception as e:
-        log.warning(f"Failed to send irrigation email: {e}")
-
-    return {"application": doc_public(doc)}
+async def _deprecated_irrigation_apply():
+    raise HTTPException(
+        status_code=410,
+        detail="This application endpoint has been discontinued. Please use the customer enquiry form at /api/enquiry (Name, Mobile, Email, Service, Message only). We no longer collect Aadhaar, PAN or bank details.",
+    )
 
 
 @api.get("/irrigation/my")
@@ -1172,17 +1039,21 @@ async def startup():
              "a_en": "No. Enquiry and initial consultation are free. We do not take any advance payment."},
         ])
 
-    # Seed downloads
+    # Seed downloads (informational only, no fake gov application forms)
     if await db.downloads.count_documents({}) == 0:
         await db.downloads.insert_many([
-            {"title_hi": "PM सूर्य घर आवेदन फॉर्म", "title_en": "PM Surya Ghar Application Form",
-             "size": "PDF · 250 KB", "url": "#"},
-            {"title_hi": "सोलर सब्सिडी गाइडलाइन", "title_en": "Solar Subsidy Guidelines",
-             "size": "PDF · 480 KB", "url": "#"},
-            {"title_hi": "लोन आवेदन चेकलिस्ट", "title_en": "Loan Application Checklist",
-             "size": "PDF · 180 KB", "url": "#"},
-            {"title_hi": "रूफटॉप सोलर ब्रोशर", "title_en": "Rooftop Solar Brochure",
+            {"title_hi": "रूफटॉप सोलर ब्रोशर (Haryana Enterprises)",
+             "title_en": "Rooftop Solar Brochure (Haryana Enterprises)",
              "size": "PDF · 1.2 MB", "url": "#"},
+            {"title_hi": "साइट सर्वे चेकलिस्ट",
+             "title_en": "Site Survey Checklist",
+             "size": "PDF · 180 KB", "url": "#"},
+            {"title_hi": "सोलर सिस्टम रखरखाव गाइड",
+             "title_en": "Solar System Maintenance Guide",
+             "size": "PDF · 340 KB", "url": "#"},
+            {"title_hi": "सरकारी योजना संदर्भ लिंक (केवल सामान्य जानकारी)",
+             "title_en": "Government Scheme Reference Links (General Information Only)",
+             "size": "Info · verify at pmsuryaghar.gov.in", "url": "https://pmsuryaghar.gov.in"},
         ])
 
 
