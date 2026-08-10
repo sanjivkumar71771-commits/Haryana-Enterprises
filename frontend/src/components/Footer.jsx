@@ -83,9 +83,8 @@ const Footer = () => {
             <ul className="space-y-2 text-sm mt-2">
               <li><Link to="/notices" className="text-slate-300 hover:text-emerald-400">→ {t(S.nav.notices)}</Link></li>
               <li><Link to="/downloads" className="text-slate-300 hover:text-emerald-400">→ {t(S.nav.downloads)}</Link></li>
-              <li><Link to="/gallery" className="text-slate-300 hover:text-emerald-400">→ {t(S.nav.gallery)}</Link></li>
               <li><Link to="/faq" className="text-slate-300 hover:text-emerald-400">→ {t(S.nav.faq)}</Link></li>
-              <li><a href="https://pmsuryaghar.gov.in" target="_blank" rel="noreferrer" className="text-slate-300 hover:text-emerald-400">→ PM Surya Ghar Portal ↗</a></li>
+              <li><a href="https://pmsuryaghar.gov.in" target="_blank" rel="noreferrer" className="text-slate-300 hover:text-emerald-400">→ PM Surya Ghar (Official) ↗</a></li>
               <li><a href="https://mnre.gov.in" target="_blank" rel="noreferrer" className="text-slate-300 hover:text-emerald-400">→ MNRE Official ↗</a></li>
             </ul>
           </div>

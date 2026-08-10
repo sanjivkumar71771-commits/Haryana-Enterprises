@@ -1,0 +1,37 @@
+{
+  "summary": "Iteration 6 fixes verified end-to-end. All 4 UX bugs + new Offline scraper source confirmed working. Backend 10/10 pytest passing, frontend UI checks all pass.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Footer Quick Links", "issues": ["Footer still contains 'गैलरी' (Gallery) link under Resources/Quick Links section. Spec only required removing it from top nav, so this is informational — main agent may want to remove it from footer for full consistency."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_enquiry_and_vacancies.py",
+    "/app/test_reports/pytest/iter6.xml"
+  ],
+  "verification_details": {
+    "enquiry_dropdown": "8 options rendered incl. 'सिंचाई / कृषि परामर्श (Irrigation / Farm Consultation)'. Option computed style color=rgb(15,23,42) on bg=rgb(16,185,129) — dark text on emerald bg, fully legible (no white-on-white).",
+    "enquiry_valid_submission": "POST /api/enquiry with Irrigation service succeeded → ref_no ENQ-23AE58E0 shown on success screen (data-testid=enquiry-ref-no).",
+    "enquiry_short_mobile": "Backend returns 422 with detail array containing 'mobile' and 'at least 7' text. Client-side validation also catches it first with helpful Hindi/English toast (not generic 'Submission failed').",
+    "enquiry_short_message": "Client-side blocks message='hi' with 'Message must be at least 5 characters' toast. Backend also returns 422 with 'message' field name.",
+    "gallery_removed": "Top nav (data-testid=main-nav) does not contain 'Gallery' or 'गैलरी'. Mobile menu also clean. (/gallery route still loads component — as expected per spec.)",
+    "vacancies_auto_update": "Backend logs show 'Scheduler started (vacancies every 6h)' + successful refresh runs (total=400, includes new-updates source). /api/vacancies/stats returns last_updated timestamp. UI shows 'Auto-updated every 6 hours from FreeJobAlert.com' with last-updated badge.",
+    "offline_source": "Mode filter counts on UI: All=100, Online=23, Offline=7. Clicking vac-mode-offline shows 7 amber Offline Form badges (data-testid vacancy-mode-offline-*) and 0 online. Clicking vac-mode-online shows 23 emerald Online Form badges and 0 offline.",
+    "regression": "Home has 'सोलर पूछताछ (Solar Enquiry)' + 'Explore Solar Services' CTAs. No 'Apply Now' text on home. Header has no Login/Register/Dashboard. POST to /api/{solar,loan,csc,irrigation}/apply all return HTTP 410."
+  },
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Minor: footer still contains a गैलरी link under Quick Links — consider removing for consistency with top-nav removal (not in spec requirement though).",
+    "scrapers.py: fetch_freejobalert() de-dupe merge for application_mode is correct; nice fix for cross-source preservation of the offline flag."
+  ],
+  "updated_files": ["/app/backend/tests/test_enquiry_and_vacancies.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "admin@haryanaenterprises.com / Admin@123 (not needed this iteration)",
+  "seed_data_creation": "None (used live scraped data). One real enquiry inserted with ref ENQ-23AE58E0.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All 4 UX issues + new Offline scraper source pass. If retesting, prefer running /app/backend/tests/test_enquiry_and_vacancies.py with REACT_APP_BACKEND_URL env var set. Sonner toasts render inside <ol data-sonner-toaster> as <li> — selector '[data-sonner-toast]' may not attach; test via network 422 + client validation logic instead."
+}

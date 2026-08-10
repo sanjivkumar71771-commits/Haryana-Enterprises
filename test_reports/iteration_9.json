@@ -1,0 +1,26 @@
+{
+  "summary": "Verified copy-only fix: 'FreeJobAlert' string removed from /vacancies and / (home) pages. Footer Resources column no longer contains 'गैलरी' or /gallery link. Vacancy mode filter buttons (vac-mode-all/online/offline/other) all present and clickable. 'PM Surya Ghar (Official)' rename confirmed in footer.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (skipped per request)", "frontend": "100%"},
+  "seed_data_creation": "none",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 9 verified small UX fix: 'FreeJobAlert' text removed from /vacancies and /home; gallery link removed from footer Resources; PM Surya Ghar (Official) rename applied. Vacancies filter buttons still present and functional. Enquiry regression skipped per request.",
+  "verification_details": {
+    "vacancies_has_FreeJobAlert": false,
+    "home_has_FreeJobAlert": false,
+    "gallery_links_in_dom": 0,
+    "footer_has_gallery_text": false,
+    "footer_has_pm_surya_ghar_official": true,
+    "vac_mode_buttons_present": ["vac-mode-all", "vac-mode-online", "vac-mode-offline", "vac-mode-other"]
+  }
+}

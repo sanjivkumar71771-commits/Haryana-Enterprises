@@ -1,0 +1,21 @@
+{
+  "summary": "Verified vacancies 'All' counter consistency fix. Both सभी counters (Category row and Application Mode row) now show identical count (413) matching /api/vacancies/stats.total. Backend /api/vacancies default limit raised (returns full 413 items). mode=online / mode=offline filters return correctly typed items. Regression spot-checks pass (solar/apply=410, enquiry=200).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_vacancies_mode.py",
+    "/app/test_reports/pytest/vacancies_mode.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Returning up to 1000 vacancies in one call is fine for now (~413), but consider pagination for future scale.",
+    "server.py is ~1100 lines — approaching the 700-line guideline; consider modularizing routers."
+  ],
+  "updated_files": ["/app/backend/tests/test_vacancies_mode.py"],
+  "success_rate": {"backend": "100% (6/6)", "frontend": "100%"},
+  "seed_data_creation": "One TEST enquiry created via /api/enquiry.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Vacancies page counter consistency confirmed at total=413, online=70, offline=20. If dataset re-scrapes, exact numbers drift but stats.total == both सभी counter values must always hold.",
+  "rca of the issue": "Fix verified: (1) backend list_vacancies now honors ?mode= and default limit=500 (cap 1000); (2) /api/vacancies/stats returns by_mode dict; (3) frontend Vacancies.jsx derives modeCounts from stats.by_mode (not the potentially truncated items array) and includes mode in load() deps."
+}

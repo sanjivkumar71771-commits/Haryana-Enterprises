@@ -14,6 +14,7 @@ const SERVICES = [
   { hi: "सोलर सिस्टम प्लानिंग", en: "Solar System Planning" },
   { hi: "इंस्टॉलेशन सहायता", en: "Installation Assistance" },
   { hi: "सोलर योजना जानकारी", en: "Solar Scheme Information" },
+  { hi: "सिंचाई / कृषि परामर्श (Irrigation / Farm Consultation)", en: "Irrigation / Farm Consultation" },
   { hi: "आफ्टर-सेल्स सहायता", en: "After-Sales Support" },
   { hi: "अन्य", en: "Other" },
 ];
@@ -36,18 +37,45 @@ const Enquiry = () => {
 
   const submit = async (e) => {
     e.preventDefault();
+    // Client-side validation aligned with backend
+    if (f.full_name.trim().length < 2) {
+      toast.error(hi ? "कृपया पूरा नाम दर्ज करें (कम से कम 2 अक्षर)" : "Please enter your full name (at least 2 characters)");
+      return;
+    }
     if (!/^[0-9+\-\s]{7,15}$/.test(f.mobile)) {
-      toast.error(hi ? "कृपया वैध मोबाइल नंबर दर्ज करें" : "Please enter a valid mobile number");
+      toast.error(hi ? "कृपया वैध मोबाइल नंबर दर्ज करें (7–15 अंक)" : "Please enter a valid mobile number (7–15 digits)");
+      return;
+    }
+    if (f.message.trim().length < 5) {
+      toast.error(hi ? "संदेश कम से कम 5 अक्षर का होना चाहिए" : "Message must be at least 5 characters");
       return;
     }
     setLoading(true);
     try {
-      const { data } = await api.post("/enquiry", f);
+      const payload = {
+        full_name: f.full_name.trim(),
+        mobile: f.mobile.trim(),
+        email: f.email.trim(),
+        service: f.service,
+        message: f.message.trim(),
+      };
+      const { data } = await api.post("/enquiry", payload);
       setDone(data.ref_no);
       toast.success(hi ? `पूछताछ प्राप्त हुई! रेफ नं: ${data.ref_no}` : `Enquiry received! Ref: ${data.ref_no}`);
     } catch (err) {
+      let msg = hi ? "जमा नहीं हुआ। कृपया पुनः प्रयास करें।" : "Submission failed. Please try again.";
       const d = err.response?.data?.detail;
-      toast.error(typeof d === "string" ? d : (hi ? "जमा नहीं हुआ" : "Submission failed"));
+      if (typeof d === "string") {
+        msg = d;
+      } else if (Array.isArray(d) && d[0]?.msg) {
+        // FastAPI 422 validation error array
+        const first = d[0];
+        const field = first.loc?.[first.loc.length - 1] || "";
+        msg = `${field ? field + ": " : ""}${first.msg}`;
+      } else if (!err.response) {
+        msg = hi ? "सर्वर से कनेक्ट नहीं हो पाया। इंटरनेट जाँचें।" : "Could not reach server. Please check your internet.";
+      }
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -113,8 +141,9 @@ const Enquiry = () => {
               <label className="label">{hi ? "मोबाइल नंबर" : "Mobile Number"} *</label>
               <div className="input-icon-wrap">
                 <FaPhone className="icon" />
-                <input required className="input" placeholder="98xxxxxxxx" value={f.mobile} onChange={set("mobile")} data-testid="enquiry-mobile-input" />
+                <input required className="input" placeholder="98xxxxxxxx" value={f.mobile} onChange={set("mobile")} data-testid="enquiry-mobile-input" minLength={7} maxLength={15} />
               </div>
+              <div className="text-[10px] text-slate-500 mt-1">{hi ? "10 अंक का मोबाइल नंबर दर्ज करें" : "Enter 10-digit mobile number"}</div>
             </div>
             <div className="md:col-span-2">
               <label className="label">{hi ? "ईमेल पता" : "Email Address"} *</label>
@@ -135,8 +164,9 @@ const Enquiry = () => {
               <label className="label">{hi ? "आपका संदेश" : "Message"} *</label>
               <div className="input-icon-wrap">
                 <FaCommentDots className="icon !top-4" />
-                <textarea required rows="4" className="input" placeholder={hi ? "अपनी आवश्यकता संक्षेप में लिखें (जैसे: 3 kW रूफटॉप सोलर की जानकारी चाहिए)" : "Briefly describe your requirement (e.g., need information about 3 kW rooftop solar)"} value={f.message} onChange={set("message")} data-testid="enquiry-message-input" />
+                <textarea required rows="4" className="input" placeholder={hi ? "अपनी आवश्यकता संक्षेप में लिखें (जैसे: 3 kW रूफटॉप सोलर की जानकारी चाहिए)" : "Briefly describe your requirement (e.g., need information about 3 kW rooftop solar)"} value={f.message} onChange={set("message")} data-testid="enquiry-message-input" minLength={5} maxLength={1500} />
               </div>
+              <div className="text-[10px] text-slate-500 mt-1">{hi ? `कम से कम 5 अक्षर आवश्यक (${f.message.trim().length}/5)` : `Minimum 5 characters required (${f.message.trim().length}/5)`}</div>
             </div>
           </div>
 

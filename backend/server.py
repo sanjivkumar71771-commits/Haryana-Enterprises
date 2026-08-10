@@ -32,7 +32,7 @@ from auth import (
 )
 from emails import send_email, send_email_async, render_confirmation, render_reset
 from csc_services import CSC_CATEGORIES, all_service_ids, find_service
-from scrapers import fetch_freejobalert, refresh_vacancies_into_db, fetch_article_detail
+from scrapers import fetch_freejobalert, refresh_vacancies_into_db, fetch_article_detail, backfill_application_mode
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 # MongoDB
@@ -512,13 +512,18 @@ async def list_vacancies(
     category: Optional[str] = None,
     q: Optional[str] = None,
     qualification: Optional[str] = None,
-    limit: int = 100,
+    mode: Optional[str] = None,
+    limit: int = 500,
 ):
     query = {}
     if category and category != "all":
         query["category"] = category
     if qualification and qualification != "all":
         query["qualification"] = {"$regex": qualification, "$options": "i"}
+    if mode == "other":
+        query["application_mode"] = None
+    elif mode and mode in ("online", "offline"):
+        query["application_mode"] = mode
     if q:
         query["$or"] = [
             {"title": {"$regex": q, "$options": "i"}},
@@ -526,18 +531,23 @@ async def list_vacancies(
             {"post_name": {"$regex": q, "$options": "i"}},
             {"row_text": {"$regex": q, "$options": "i"}},
         ]
-    items = await db.vacancies.find(query).sort("fetched_at", -1).to_list(min(limit, 300))
+    items = await db.vacancies.find(query).sort("fetched_at", -1).to_list(min(limit, 1000))
     return [doc_public(v) for v in items]
 
 
 @api.get("/vacancies/stats")
 async def vacancies_stats():
     total = await db.vacancies.count_documents({})
-    pipeline = [{"$group": {"_id": "$category", "count": {"$sum": 1}}}]
-    by_cat = [{"category": r["_id"] or "other", "count": r["count"]} async for r in db.vacancies.aggregate(pipeline)]
+    by_cat_pipeline = [{"$group": {"_id": "$category", "count": {"$sum": 1}}}]
+    by_cat = [{"category": r["_id"] or "other", "count": r["count"]} async for r in db.vacancies.aggregate(by_cat_pipeline)]
+
+    online_count = await db.vacancies.count_documents({"application_mode": "online"})
+    offline_count = await db.vacancies.count_documents({"application_mode": "offline"})
+    by_mode = {"all": total, "online": online_count, "offline": offline_count}
+
     latest = await db.vacancies.find({}, sort=[("fetched_at", -1)], limit=1).to_list(1)
     last_updated = latest[0]["fetched_at"].isoformat() if latest and latest[0].get("fetched_at") else None
-    return {"total": total, "by_category": by_cat, "last_updated": last_updated}
+    return {"total": total, "by_category": by_cat, "by_mode": by_mode, "last_updated": last_updated}
 
 
 @api.get("/vacancies/{vac_id}")
@@ -1072,6 +1082,8 @@ async def start_scheduler():
         try:
             before_urls = set([v["url"] async for v in db.vacancies.find({}, {"url": 1})])
             n = await refresh_vacancies_into_db(db)
+            # Always backfill so historical rows also get application_mode populated
+            await backfill_application_mode(db)
             log.info(f"[scheduler] Vacancies refreshed. new={n}")
             if n > 0:
                 new_docs = await db.vacancies.find({"url": {"$nin": list(before_urls)}}).to_list(n * 2)

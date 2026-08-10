@@ -141,8 +141,8 @@ const VacanciesPreview = () => {
               </h2>
               <p className="text-slate-300 mt-2 text-sm max-w-2xl">
                 {hi
-                  ? "सरकारी नौकरियों की ताज़ा जानकारी सीधे FreeJobAlert से — पात्रता, अंतिम तिथि, आवेदन शुल्क और वेतन के साथ। छात्रों के लिए मुफ्त।"
-                  : "Fresh government job updates directly from FreeJobAlert — with eligibility, last date, fee & salary details. Free for students."}
+                  ? "सरकारी नौकरियों की ताज़ा जानकारी — पात्रता, अंतिम तिथि, आवेदन शुल्क और वेतन के साथ। छात्रों के लिए मुफ्त।"
+                  : "Fresh government job updates — with eligibility, last date, fee & salary details. Free for students."}
               </p>
             </div>
             <Link to="/vacancies" className="btn-amber shrink-0" data-testid="vacancies-preview-view-all">

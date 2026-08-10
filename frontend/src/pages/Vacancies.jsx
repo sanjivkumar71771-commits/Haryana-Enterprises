@@ -5,7 +5,7 @@ import JobAlertSubscribe from "@/components/JobAlertSubscribe";
 import { useAuth } from "@/context/AuthContext";
 import { useI18n } from "@/context/I18nContext";
 import { toast } from "sonner";
-import { FaSearch, FaExternalLinkAlt, FaSync, FaCalendarAlt, FaBriefcase, FaClock, FaChevronRight, FaGraduationCap, FaBuilding } from "react-icons/fa";
+import { FaSearch, FaExternalLinkAlt, FaSync, FaCalendarAlt, FaBriefcase, FaClock, FaChevronRight, FaGraduationCap, FaBuilding, FaFileAlt, FaGlobe } from "react-icons/fa";
 
 const CAT_LABELS = {
   all: { hi: "सभी", en: "All" },
@@ -53,6 +53,7 @@ const Vacancies = () => {
   const [stats, setStats] = useState(null);
   const [category, setCategory] = useState("all");
   const [qualification, setQualification] = useState("all");
+  const [mode, setMode] = useState("all"); // all | online | offline
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -63,6 +64,7 @@ const Vacancies = () => {
       const params = new URLSearchParams();
       if (category !== "all") params.set("category", category);
       if (qualification !== "all") params.set("qualification", qualification);
+      if (mode !== "all") params.set("mode", mode);
       if (q) params.set("q", q);
       const [r1, r2] = await Promise.all([
         api.get(`/vacancies?${params.toString()}`),
@@ -74,7 +76,7 @@ const Vacancies = () => {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [category, qualification]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [category, qualification, mode]);
 
   const refresh = async () => {
     setRefreshing(true);
@@ -88,6 +90,7 @@ const Vacancies = () => {
   };
 
   const filtered = useMemo(() => {
+    // mode is now filtered server-side, only apply text search client-side
     if (!q) return items;
     const s = q.toLowerCase();
     return items.filter(i =>
@@ -96,6 +99,15 @@ const Vacancies = () => {
       i.post_name?.toLowerCase().includes(s)
     );
   }, [items, q]);
+
+  // Mode counts come from DB stats (full dataset) — matches category counter above.
+  const modeCounts = useMemo(() => {
+    const all = stats?.total ?? 0;
+    const online = stats?.by_mode?.online ?? 0;
+    const offline = stats?.by_mode?.offline ?? 0;
+    const other = Math.max(0, all - online - offline);
+    return { all, online, offline, other };
+  }, [stats]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-10" data-testid="vacancies-page">
@@ -106,7 +118,7 @@ const Vacancies = () => {
             {lang === "hi" ? (<>ताज़ा <span className="text-amber-400">सरकारी भर्तियाँ</span></>) : (<>Latest <span className="text-amber-400">Government Vacancies</span></>)}
           </h1>
           <p className="text-slate-400 mt-2 text-sm">
-            {lang === "hi" ? "FreeJobAlert.com से हर 6 घंटे में automatic update।" : "Auto-updated every 6 hours from FreeJobAlert.com."}
+            {lang === "hi" ? "हर 6 घंटे में automatic update।" : "Auto-updated every 6 hours."}
             {stats?.last_updated && (
               <span className="ml-2 text-emerald-400"><FaClock className="inline mr-1" /> {new Date(stats.last_updated).toLocaleString()}</span>
             )}
@@ -153,6 +165,34 @@ const Vacancies = () => {
             );
           })}
         </div>
+
+        {/* Application Mode Filter */}
+        <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-white/5">
+          <span className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold mr-1">
+            {lang === "hi" ? "आवेदन प्रकार" : "Application Mode"}:
+          </span>
+          {[
+            { k: "all", hi: "सभी", en: "All" },
+            { k: "online", hi: "ऑनलाइन फॉर्म", en: "Online Form" },
+            { k: "offline", hi: "ऑफलाइन फॉर्म", en: "Offline Form" },
+            { k: "other", hi: "अन्य", en: "Other" },
+          ].map(m => (
+            <button
+              key={m.k}
+              onClick={() => setMode(m.k)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                mode === m.k
+                  ? (m.k === "offline"
+                      ? "bg-amber-500/15 text-amber-300 border border-amber-500/40"
+                      : "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30")
+                  : "bg-white/[0.03] text-slate-400 border border-white/10 hover:text-white"
+              }`}
+              data-testid={`vac-mode-${m.k}`}
+            >
+              {lang === "hi" ? m.hi : m.en} ({modeCounts[m.k] || 0})
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Vacancy list */}
@@ -179,6 +219,16 @@ const Vacancies = () => {
                     {v.organization && (
                       <span className="chip !text-[10px] !bg-sky-500/10 !text-sky-300 !border-sky-500/30">
                         <FaBuilding className="inline mr-1 text-[9px]" />{v.organization}
+                      </span>
+                    )}
+                    {v.application_mode === "offline" && (
+                      <span className="chip !text-[10px] !bg-amber-500/15 !text-amber-300 !border-amber-500/40" data-testid={`vacancy-mode-offline-${i}`}>
+                        <FaFileAlt className="inline mr-1 text-[9px]" /> {lang === "hi" ? "ऑफलाइन फॉर्म" : "Offline Form"}
+                      </span>
+                    )}
+                    {v.application_mode === "online" && (
+                      <span className="chip !text-[10px] !bg-emerald-500/10 !text-emerald-300 !border-emerald-500/30" data-testid={`vacancy-mode-online-${i}`}>
+                        <FaGlobe className="inline mr-1 text-[9px]" /> {lang === "hi" ? "ऑनलाइन फॉर्म" : "Online Form"}
                       </span>
                     )}
                   </div>
@@ -212,9 +262,6 @@ const Vacancies = () => {
         </div>
       )}
 
-      <div className="mt-8 text-xs text-slate-500 text-center">
-        {lang === "hi" ? "स्रोत" : "Source"}: <a href="https://www.freejobalert.com" target="_blank" rel="noreferrer" className="link-mint">FreeJobAlert.com</a>
-      </div>
     </div>
   );
 };

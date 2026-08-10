@@ -23,6 +23,7 @@ log = logging.getLogger("scraper")
 SOURCES = [
     ("latest", "https://www.freejobalert.com/latest-notifications/"),
     ("sarkari", "https://www.freejobalert.com/sarkari-naukri/"),
+    ("offline", "https://www.freejobalert.com/new-updates/"),
 ]
 
 HEADERS = {
@@ -53,6 +54,24 @@ def _cat_from_title(title: str) -> str:
     if any(k in t for k in ["engineer", "psu", "ongc", "iocl", "hpcl", "gail", "bhel", "ntpc"]): return "psu"
     if any(k in t for k in ["nurse", "doctor", "medical", "aiims", "esic", "hospital"]): return "medical"
     return "other"
+
+
+def _detect_application_mode(*texts: str) -> str | None:
+    """Detect application_mode from any combination of title / row_text / URL slug.
+
+    Signals in priority order:
+      1. Explicit "offline form" / "online form" text
+      2. URL slug hints ("apply-offline" / "apply-online")
+      3. Words like "postal" / "hard copy" imply offline
+    """
+    hay = " ".join(t for t in texts if t).lower()
+    if not hay:
+        return None
+    if re.search(r"offline\s*form|apply[-_ ]offline|by\s*post|postal\s*application|hard\s*copy", hay):
+        return "offline"
+    if re.search(r"online\s*form|apply[-_ ]online|online\s*application|online\s*registration", hay):
+        return "online"
+    return None
 
 
 def _parse_row(cells) -> Dict | None:
@@ -98,6 +117,9 @@ def _parse_row(cells) -> Dict | None:
     if not title or title.lower() in JUNK_TITLES or len(title) < 3:
         return None
 
+    row_text_val = " | ".join([t for t in texts if t])[:500]
+    mode = _detect_application_mode(title, row_text_val, href)
+
     return {
         "title": title[:250],
         "url": href,
@@ -106,7 +128,56 @@ def _parse_row(cells) -> Dict | None:
         "qualification": qualification[:200],
         "post_date_text": post_date[:40],
         "last_date_text": last_date_text[:40] or None,
+        "application_mode": mode,
         "category": _cat_from_title(title),
+        "row_text": row_text_val,
+    }
+
+
+def _parse_update_row(cells) -> Dict | None:
+    """Parse rows from `new-updates` page (3 columns: Date | Update Info | Get Details link)."""
+    if len(cells) < 2:
+        return None
+    texts = [_clean(c.get_text(" ", strip=True)) for c in cells]
+
+    href = None
+    for c in reversed(cells):
+        a = c.find("a", href=True)
+        if a and a["href"].startswith("http"):
+            href = a["href"]
+            break
+    if not href:
+        return None
+
+    post_date = texts[0]
+    info = texts[1]
+
+    # skip header row
+    if info.lower() in ("update information", "update", "information"):
+        return None
+    if not info or len(info) < 4 or info.lower() in JUNK_TITLES:
+        return None
+    # skip rows where the info line IS the anchor text like "Get Details"
+    if info.lower() in JUNK_TITLES:
+        return None
+
+    # Split "AIIMS Delhi Field Worker Online Form 2026" → org guess = first 1-2 words
+    words = info.split()
+    org = " ".join(words[:2]) if len(words) >= 2 else words[0] if words else ""
+    post_name = info
+
+    mode = _detect_application_mode(info, href)
+
+    return {
+        "title": info[:250],
+        "url": href,
+        "organization": org[:120],
+        "post_name": post_name[:200],
+        "qualification": "",
+        "post_date_text": post_date[:40],
+        "last_date_text": None,
+        "application_mode": mode,
+        "category": _cat_from_title(info),
         "row_text": " | ".join([t for t in texts if t])[:500],
     }
 
@@ -125,11 +196,21 @@ async def fetch_freejobalert() -> List[Dict]:
                 for table in soup.find_all("table"):
                     for row in table.find_all("tr"):
                         cells = row.find_all("td")
-                        if len(cells) < 6:
-                            continue
-                        parsed = _parse_row(cells)
+                        parsed = None
+                        if len(cells) >= 6:
+                            parsed = _parse_row(cells)
+                        elif src_type == "offline" and 2 <= len(cells) <= 4:
+                            # new-updates page — 3-column layout
+                            parsed = _parse_update_row(cells)
                         if not parsed:
                             continue
+                        # Ensure application_mode is populated using all signals available
+                        if not parsed.get("application_mode"):
+                            parsed["application_mode"] = _detect_application_mode(
+                                parsed.get("title", ""),
+                                parsed.get("row_text", ""),
+                                parsed.get("url", ""),
+                            )
                         parsed.update({
                             "source": "freejobalert",
                             "source_type": src_type,
@@ -139,14 +220,25 @@ async def fetch_freejobalert() -> List[Dict]:
             except Exception as e:
                 log.error(f"FreeJobAlert {src_type} error: {e}")
 
-    # De-dupe by URL (keep first occurrence — "latest" is scraped before "upcoming")
-    seen, out = set(), []
+    # De-dupe by URL, but merge useful signal (application_mode, missing fields) across duplicates.
+    # We scrape in order: latest → sarkari → offline. Offline pass adds application_mode="offline"
+    # for the same article URLs; without merging, this info would be lost.
+    by_url: Dict[str, Dict] = {}
     for v in results:
-        if v["url"] in seen:
+        u = v["url"]
+        if u not in by_url:
+            by_url[u] = v
             continue
-        seen.add(v["url"])
-        out.append(v)
-    return out[:250]
+        existing = by_url[u]
+        # Prefer non-None application_mode
+        if not existing.get("application_mode") and v.get("application_mode"):
+            existing["application_mode"] = v["application_mode"]
+        # Backfill missing fields from later scrapes
+        for k in ("qualification", "post_date_text", "last_date_text"):
+            if not existing.get(k) and v.get(k):
+                existing[k] = v[k]
+    out = list(by_url.values())
+    return out[:400]
 
 
 async def refresh_vacancies_into_db(db) -> int:
@@ -167,6 +259,28 @@ async def refresh_vacancies_into_db(db) -> int:
             log.warning(f"upsert vacancy failed: {e}")
     log.info(f"Vacancies refresh: total={len(vacs)}, new={added}")
     return added
+
+
+async def backfill_application_mode(db) -> dict:
+    """Scan all vacancies missing application_mode and infer it from title/row_text/url.
+
+    Returns a dict summary of counts touched.
+    """
+    query = {"$or": [{"application_mode": None}, {"application_mode": {"$exists": False}}]}
+    total = await db.vacancies.count_documents(query)
+    online = offline = still_unknown = 0
+    async for d in db.vacancies.find(query, {"title": 1, "row_text": 1, "url": 1}):
+        mode = _detect_application_mode(d.get("title", ""), d.get("row_text", ""), d.get("url", ""))
+        if mode == "online":
+            online += 1
+        elif mode == "offline":
+            offline += 1
+        else:
+            still_unknown += 1
+            continue
+        await db.vacancies.update_one({"_id": d["_id"]}, {"$set": {"application_mode": mode}})
+    log.info(f"backfill: total_scanned={total} online+={online} offline+={offline} still_unknown={still_unknown}")
+    return {"scanned": total, "tagged_online": online, "tagged_offline": offline, "unknown": still_unknown}
 
 
 # ─────────── Article Detail Scraper ───────────

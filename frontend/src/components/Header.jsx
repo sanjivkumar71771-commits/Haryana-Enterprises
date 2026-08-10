@@ -6,7 +6,7 @@ import Logo from "@/components/Logo";
 import {
   FaSolarPanel, FaBars, FaTimes,
   FaFileDownload, FaHeadset, FaHome, FaInfoCircle,
-  FaCogs, FaImages, FaBullhorn, FaQuestionCircle, FaChevronDown,
+  FaCogs, FaBullhorn, FaQuestionCircle, FaChevronDown,
   FaAdjust, FaLanguage, FaBriefcase
 } from "react-icons/fa";
 
@@ -35,7 +35,6 @@ const Header = () => {
     { to: "/services", label: t(S.nav.services), icon: FaCogs },
     { to: "/enquiry", label: t(S.nav.enquiry), icon: FaSolarPanel },
     { to: "/vacancies", label: t(S.nav.vacancies), icon: FaBriefcase },
-    { to: "/gallery", label: t(S.nav.gallery), icon: FaImages },
     { to: "/contact", label: t(S.nav.contact), icon: FaHeadset },
   ];
   const moreLinks = [
