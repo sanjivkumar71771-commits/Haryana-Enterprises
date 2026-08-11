@@ -1,5 +1,5 @@
-import React, { useRef, useState } from "react";
-import html2canvas from "html2canvas";
+import React, { useEffect, useRef, useState } from "react";
+import { toPng } from "html-to-image";
 import Poster from "./Poster";
 import { X, Download, Share2, Loader2, Upload, ImageOff } from "lucide-react";
 import { SITE_NAME, SITE_BASE_URL } from "./config";
@@ -45,9 +45,30 @@ const ShareModal = ({ vacancy, onClose }) => {
   const [logo, setLogo] = useState(null);
   const [showPoster, setShowPoster] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [previewScale, setPreviewScale] = useState(1);
   const posterRef = useRef(null);
 
   const displayName = (shopName && shopName.trim()) || SITE_NAME;
+
+  // Fit the 620px-wide poster into whatever preview area we have.
+  // Constrain by both viewport width AND height so laptops (short screens)
+  // and phones (narrow screens) both see a comfortably sized preview.
+  useEffect(() => {
+    if (!showPoster) return;
+    const compute = () => {
+      const availW = Math.min(window.innerWidth - 80, 720) - 32;
+      const availH = window.innerHeight - 240; // leave room for header/actions
+      const posterNaturalH = 900; // approximate; poster height is content-dependent
+      const sW = availW / 620;
+      const sH = availH / posterNaturalH;
+      // Never upscale above 0.95 so we don't fill the whole modal on huge screens
+      const s = Math.min(0.95, Math.max(0.35, Math.min(sW, sH)));
+      setPreviewScale(Number(s.toFixed(3)));
+    };
+    compute();
+    window.addEventListener("resize", compute);
+    return () => window.removeEventListener("resize", compute);
+  }, [showPoster]);
 
   const handleLogo = (e) => {
     const file = e.target.files?.[0];
@@ -57,20 +78,35 @@ const ShareModal = ({ vacancy, onClose }) => {
     reader.readAsDataURL(file);
   };
 
+  // Wait for web fonts + one animation frame → then rasterize to PNG.
+  // html-to-image embeds the fonts as data URIs into the exported SVG so text
+  // never reflows between screen and download (fixes html2canvas timing bug).
   const capture = async () => {
     const node = posterRef.current;
     if (!node) return null;
-    return html2canvas(node, { scale: 3, backgroundColor: "#eef1f8", useCORS: true, logging: false });
+    try {
+      if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    } catch { /* fonts API missing → continue */ }
+    await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 60)));
+    return toPng(node, {
+      pixelRatio: 3,
+      cacheBust: true,
+      backgroundColor: "#eef1f8",
+      // Force capture at the poster's natural size regardless of preview scale
+      width: 620,
+      height: node.scrollHeight,
+      style: { transform: "none", transformOrigin: "top left" },
+    });
   };
 
   const handleDownload = async () => {
     setBusy(true);
     try {
-      const canvas = await capture();
-      if (!canvas) return;
+      const dataUrl = await capture();
+      if (!dataUrl) return;
       const link = document.createElement("a");
       link.download = `${displayName.replace(/\s+/g, "-")}-vacancy-poster.png`;
-      link.href = canvas.toDataURL("image/png");
+      link.href = dataUrl;
       link.click();
     } finally { setBusy(false); }
   };
@@ -78,13 +114,15 @@ const ShareModal = ({ vacancy, onClose }) => {
   const handleWhatsApp = async () => {
     setBusy(true);
     try {
-      const canvas = await capture();
+      const dataUrl = await capture();
       const url = `${SITE_BASE_URL}/vacancies/${vacancy.id}`;
-      const text = `*${displayName}*%0A%0A${vacancy.jobTitle} - ${vacancy.organization}%0ATotal Posts: ${vacancy.totalPosts}%0ALast Date: ${vacancy.lastDate}%0A%0AView full details: ${url}`;
-      if (canvas) {
+      const text = encodeURIComponent(
+        `*${displayName}*\n\n${vacancy.jobTitle} — ${vacancy.organization}\nTotal Posts: ${vacancy.totalPosts}\nLast Date: ${vacancy.lastDate}\n\nView full details: ${url}`
+      );
+      if (dataUrl) {
         const link = document.createElement("a");
         link.download = `${displayName.replace(/\s+/g, "-")}-vacancy-poster.png`;
-        link.href = canvas.toDataURL("image/png");
+        link.href = dataUrl;
         link.click();
       }
       window.open(`https://wa.me/?text=${text}`, "_blank");
@@ -158,8 +196,13 @@ const ShareModal = ({ vacancy, onClose }) => {
                 </button>
               </div>
             </div>
-            <div style={{ display: "flex", justifyContent: "center", overflowX: "auto", borderRadius: 12, background: "#f1f5f9", padding: 16 }}>
-              <Poster ref={posterRef} shopName={shopName} vacancy={vacancy} logo={logo} contact={contact} />
+            <div style={{ display: "flex", justifyContent: "center", overflow: "hidden", borderRadius: 12, background: "#f1f5f9", padding: 16 }}>
+              {/* Using CSS `zoom` shrinks BOTH visual size and layout box so tall posters
+                  don't overflow the modal on mobile. html-to-image captures the ref which
+                  is inside this wrapper — but we pass width:620 to force natural render. */}
+              <div style={{ zoom: previewScale }}>
+                <Poster ref={posterRef} shopName={shopName} vacancy={vacancy} logo={logo} contact={contact} />
+              </div>
             </div>
           </div>
         )}
