@@ -98,7 +98,15 @@ const InfoCard = ({ Icon, iconBg, label, labelColor, value, note }) => (
   </div>
 );
 
-const Poster = forwardRef(({ shopName, vacancy, logo, contact }, ref) => {
+const Poster = forwardRef(({ shopName, vacancy, logo, contact, accentColor }, ref) => {
+  // `accentColor` (e.g. "#12307a" navy default) recolors every brand-primary
+  // element in the poster — header band, deadline pill, QR frame, footer strip,
+  // and the shop-contact accents. Fallback to the classic navy.
+  const brand = accentColor || "#12307a";
+  // A slightly darker sibling of brand for gradient depth. `color-mix` is CSS Colors 5
+  // (supported in every modern engine). No JS math needed.
+  const brandDark = `color-mix(in srgb, ${brand} 55%, black)`;
+  const brandGradient = `linear-gradient(135deg, ${brand} 0%, ${brand} 55%, ${brandDark} 100%)`;
   const title = (shopName && shopName.trim()) || SITE_NAME;
   const qrUrl = `${SITE_BASE_URL}/vacancies/${vacancy.id}`;
 
@@ -119,7 +127,7 @@ const Poster = forwardRef(({ shopName, vacancy, logo, contact }, ref) => {
       {/* ===== HEADER ===== */}
       <div
         style={{
-          background: "linear-gradient(135deg, #0a2a6b 0%, #10286b 55%, #0b1740 100%)",
+          background: brandGradient,
           padding: "16px 18px 14px",
           display: "flex",
           alignItems: "center",
@@ -149,12 +157,12 @@ const Poster = forwardRef(({ shopName, vacancy, logo, contact }, ref) => {
             />
           ) : (
             <>
-              <GraduationCap size={22} color="#0a2a6b" strokeWidth={2.5} />
+              <GraduationCap size={22} color={brand} strokeWidth={2.5} />
               <span
                 style={{
                   fontFamily: "'Anton', sans-serif",
                   fontSize: 34,
-                  color: "#12307a",
+                  color: brand,
                   lineHeight: 1,
                   letterSpacing: -1,
                 }}
@@ -269,7 +277,7 @@ const Poster = forwardRef(({ shopName, vacancy, logo, contact }, ref) => {
                   style={{
                     fontFamily: "'Anton', sans-serif",
                     fontSize: size,
-                    color: "#12307a",
+                    color: brand,
                     lineHeight: 1.05,
                     marginTop: 8,
                     wordBreak: "break-word",
@@ -291,7 +299,7 @@ const Poster = forwardRef(({ shopName, vacancy, logo, contact }, ref) => {
           <div
             style={{
               flex: 1,
-              background: "#12307a",
+              background: brand,
               borderRadius: 12,
               padding: "10px 16px",
               display: "flex",
@@ -375,9 +383,9 @@ const Poster = forwardRef(({ shopName, vacancy, logo, contact }, ref) => {
           />
           <InfoCard
             Icon={CalendarDays}
-            iconBg="#7c3aed"
+            iconBg={brand}
             label="Last Date"
-            labelColor="#7c3aed"
+            labelColor={brand}
             value={vacancy.lastDate}
             note={vacancy.lastDateNote}
           />
@@ -410,7 +418,7 @@ const Poster = forwardRef(({ shopName, vacancy, logo, contact }, ref) => {
           <div style={{ flex: 1.05, display: "flex", flexDirection: "column" }}>
             <div
               style={{
-                background: "#12307a",
+                background: brand,
                 color: "#fff",
                 borderRadius: "8px 20px 8px 8px",
                 padding: "7px 14px",
@@ -438,7 +446,7 @@ const Poster = forwardRef(({ shopName, vacancy, logo, contact }, ref) => {
             <div
               style={{
                 marginTop: 8,
-                border: "2px solid #12307a",
+                border: `2px solid ${brand}`,
                 borderRadius: 12,
                 padding: "8px 12px",
                 display: "flex",
@@ -446,7 +454,7 @@ const Poster = forwardRef(({ shopName, vacancy, logo, contact }, ref) => {
                 gap: 12,
               }}
             >
-              <Globe size={40} color="#12307a" strokeWidth={2} />
+              <Globe size={40} color={brand} strokeWidth={2} />
               <div>
                 <div style={{ fontSize: 12.5, fontWeight: 600, color: "#1f2a44" }}>
                   For More Details Visit
@@ -455,7 +463,7 @@ const Poster = forwardRef(({ shopName, vacancy, logo, contact }, ref) => {
                   style={{
                     fontFamily: "'Anton', sans-serif",
                     fontSize: 24,
-                    color: "#12307a",
+                    color: brand,
                     lineHeight: 1.1,
                   }}
                 >
@@ -469,7 +477,7 @@ const Poster = forwardRef(({ shopName, vacancy, logo, contact }, ref) => {
           <div style={{ flex: 0.95, display: "flex", flexDirection: "column" }}>
             <div
               style={{
-                background: "#12307a",
+                background: brand,
                 color: "#fff",
                 borderRadius: "20px 8px 8px 8px",
                 padding: "7px 14px",
@@ -486,7 +494,7 @@ const Poster = forwardRef(({ shopName, vacancy, logo, contact }, ref) => {
               <div
                 style={{
                   background: "#fff",
-                  border: "2px solid #12307a",
+                  border: `2px solid ${brand}`,
                   borderRadius: 10,
                   padding: 8,
                   flexShrink: 0,
@@ -495,13 +503,13 @@ const Poster = forwardRef(({ shopName, vacancy, logo, contact }, ref) => {
                 <QRCodeCanvas value={qrUrl} size={132} level="M" includeMargin={false} />
               </div>
               <div style={{ textAlign: "center" }}>
-                <MoveUpLeft size={26} color="#12307a" strokeWidth={2.5} />
+                <MoveUpLeft size={26} color={brand} strokeWidth={2.5} />
                 <div
                   style={{
                     fontFamily: "'Oswald', sans-serif",
                     fontWeight: 600,
                     fontSize: 18,
-                    color: "#12307a",
+                    color: brand,
                     lineHeight: 1.1,
                     marginTop: 2,
                   }}
@@ -511,13 +519,13 @@ const Poster = forwardRef(({ shopName, vacancy, logo, contact }, ref) => {
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, paddingLeft: 6 }}>
-              <Smartphone size={30} color="#12307a" strokeWidth={2} />
+              <Smartphone size={30} color={brand} strokeWidth={2} />
               <span
                 style={{
                   fontFamily: "'Oswald', sans-serif",
                   fontWeight: 600,
                   fontSize: 16,
-                  color: "#12307a",
+                  color: brand,
                 }}
               >
                 Easy Access Save &amp; Share
@@ -531,7 +539,7 @@ const Poster = forwardRef(({ shopName, vacancy, logo, contact }, ref) => {
       <div
         style={{
           margin: "14px 18px 12px",
-          background: "linear-gradient(135deg,#0a2a6b,#0b1740)",
+          background: brandGradient,
           borderRadius: 12,
           padding: "12px 16px",
           display: "flex",
@@ -588,7 +596,7 @@ const Poster = forwardRef(({ shopName, vacancy, logo, contact }, ref) => {
           gap: 8,
         }}
       >
-        <div style={{ fontFamily: "'Oswald', sans-serif", fontWeight: 600, fontSize: 14, color: "#12307a" }}>
+        <div style={{ fontFamily: "'Oswald', sans-serif", fontWeight: 600, fontSize: 14, color: brand }}>
           Jobs • Vacancies • Admit Card • Results • Updates
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>

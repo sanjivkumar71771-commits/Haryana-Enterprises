@@ -60,6 +60,11 @@ A comprehensive web portal for **Haryana Enterprises** (Kagdana, Sirsa) — a **
 
 
 ## Changelog — Feb 2026
+- **Feb 2026 — Mobile State fix + Offline-only mode chip + Subtle scrollbar + Poster brand colors** (verified by testing_agent iter15 + iter16, 100% pass)
+  - Vacancies: Application Mode row now shows a single toggle chip ("ऑफलाइन फॉर्म") — off means all modes, on means offline. Cleaner UX for the private vendor's core service.
+  - Mobile State filter: `.input` font-size bumped to 16px ≤640px screens (prevents iOS focus-zoom) + explicit light-theme `select option` colors so the native picker is readable on iOS/Android.
+  - Global scrollbar: switched from solid `#1f2925` to subtle `rgba(148,163,184,0.35)` thumb on transparent track with `scrollbar-width: thin` for Firefox — blends with light-mode design.
+  - Poster brand palette: new 8-color palette (navy/emerald/red/orange/purple/teal/magenta/slate) in ShareModal. `<Poster accentColor>` prop recolors header gradient, Last Date InfoCard, QR frame, WhatsApp footer banner and text accents via a `color-mix`-derived brandGradient.
 - **Feb 2026 — Result scraper + State filter + Save Vacancy + Poster mobile polish** (verified by testing_agent iter14, backend 100% after category-backfill patch, frontend 100%)
   - Scrapers: switched `result` source URL to `www.freejobalert.com/exam-results/` and use `_cat_from_title` guard so admit_card/result anchors are only accepted when the title matches the page's purpose. Cap raised 800 → 1500. First-time `state` slug is populated for every parsed vacancy.
   - Backend: `/api/vacancies` accepts `?state=<slug>`; `/api/vacancies/stats` returns `by_state`. Startup does an idempotent state + category backfill so historical rows are re-tagged after regex updates.

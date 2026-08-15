@@ -39,10 +39,24 @@ const btn = (bg) => ({
   display: "inline-flex", alignItems: "center", gap: 6,
 });
 
+// Small curated palette — vendors pick a poster accent that matches their shop
+// branding. Order = navy default, emerald, red, orange, purple, teal, magenta, black.
+const BRAND_COLORS = [
+  { key: "navy",    val: "#12307a", label: "Navy" },
+  { key: "emerald", val: "#059669", label: "Emerald" },
+  { key: "red",     val: "#b91c1c", label: "Red" },
+  { key: "orange",  val: "#ea580c", label: "Orange" },
+  { key: "purple",  val: "#7c3aed", label: "Purple" },
+  { key: "teal",    val: "#0d9488", label: "Teal" },
+  { key: "magenta", val: "#be185d", label: "Magenta" },
+  { key: "slate",   val: "#0f172a", label: "Slate" },
+];
+
 const ShareModal = ({ vacancy, onClose }) => {
   const [shopName, setShopName] = useState("");
   const [contact, setContact] = useState("");
   const [logo, setLogo] = useState(null);
+  const [accentColor, setAccentColor] = useState(BRAND_COLORS[0].val);
   const [showPoster, setShowPoster] = useState(false);
   const [busy, setBusy] = useState(false);
   const [previewScale, setPreviewScale] = useState(1);
@@ -188,6 +202,40 @@ const ShareModal = ({ vacancy, onClose }) => {
               </div>
             </div>
 
+            <div style={{ marginTop: 18 }}>
+              <label style={label}>Brand Accent Color</label>
+              <div
+                style={{ display: "flex", flexWrap: "wrap", gap: 10 }}
+                data-testid="poster-accent-palette"
+              >
+                {BRAND_COLORS.map((c) => {
+                  const selected = accentColor === c.val;
+                  return (
+                    <button
+                      key={c.key}
+                      type="button"
+                      onClick={() => setAccentColor(c.val)}
+                      data-testid={`poster-accent-${c.key}`}
+                      aria-pressed={selected}
+                      aria-label={`Choose ${c.label} accent`}
+                      title={c.label}
+                      style={{
+                        width: 36, height: 36, borderRadius: "50%",
+                        background: c.val, cursor: "pointer",
+                        border: selected ? "3px solid #0f172a" : "2px solid #e2e8f0",
+                        boxShadow: selected ? "0 0 0 3px rgba(15,23,42,0.12)" : "0 2px 4px rgba(0,0,0,0.08)",
+                        transform: selected ? "scale(1.1)" : "scale(1)",
+                        transition: "all 0.15s",
+                      }}
+                    />
+                  );
+                })}
+              </div>
+              <p style={{ fontSize: 12, color: "#64748b", marginTop: 8 }}>
+                Pick a color that matches your shop's branding — used across the poster header, deadline pill and footer.
+              </p>
+            </div>
+
             <button onClick={() => setShowPoster(true)} style={{ ...btn("#16a34a"), width: "100%", height: 48, marginTop: 24, fontSize: 16, justifyContent: "center" }}>
               Generate Poster & Share
             </button>
@@ -232,7 +280,7 @@ const ShareModal = ({ vacancy, onClose }) => {
                     transformOrigin: "top left",
                   }}
                 >
-                  <Poster ref={posterRef} shopName={shopName} vacancy={vacancy} logo={logo} contact={contact} />
+                  <Poster ref={posterRef} shopName={shopName} vacancy={vacancy} logo={logo} contact={contact} accentColor={accentColor} />
                 </div>
               </div>
             </div>

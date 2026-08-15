@@ -1,0 +1,45 @@
+{
+  "summary": "Frontend-only iter15 testing: Mobile State filter, single-offline Application Mode chip, subtle light scrollbar, and Poster brand-color palette. Ran Playwright on /vacancies at mobile (375x800) then desktop viewport. 6 of 8 sub-tests pass. Two concerns: (a) CRITICAL self-referencing fallback bug in Poster.jsx (fixed by testing agent) and (b) the poster HEADER band, LAST DATE deadline pill, and WhatsApp footer banner do NOT actually repaint with the chosen accent color — they remain hardcoded navy/purple.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Poster header", "issue": "Header band background is hardcoded `linear-gradient(135deg, #0a2a6b 0%, #10286b 55%, #0b1740 100%)` and does NOT use `brand`. When user picks Emerald accent, header stays navy — violates requirement 'chosen color repaints the poster header'. Verified via screenshot: emerald picked, header still navy.", "selector": "poster header div (Poster.jsx line ~126)", "priority": "HIGH"},
+      {"component": "Poster deadline pill / Last Date InfoCard", "issue": "InfoCard for Last Date uses hardcoded iconBg='#7c3aed' and labelColor='#7c3aed' — the 'deadline pill' does not repaint with accent color. Requirement says 'deadline pill' should use chosen color.", "selector": "Poster.jsx line ~381 (InfoCard label='Last Date')", "priority": "HIGH"},
+      {"component": "Poster WhatsApp share banner (footer strip)", "issue": "Hardcoded `linear-gradient(135deg,#0a2a6b,#0b1740)` — not repainted by accent. Same for bottom footer strip: only text color uses brand, background stays white with #e6e9f2 border.", "selector": "Poster.jsx line ~538 and ~584", "priority": "MEDIUM"},
+      {"component": "Poster.jsx line 105", "issue": "CRITICAL: `const brand = accentColor || brand;` — self-referencing TDZ ReferenceError if accentColor ever falsy. Testing agent FIXED to `accentColor || '#12307a'`.", "selector": "Poster.jsx line 105", "priority": "CRITICAL (fixed)"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    "Mobile state filter visible, computed font-size=16px (iOS auto-zoom prevented).",
+    "Selecting Delhi triggers fetch: GET /api/vacancies?state=delhi (200).",
+    "Application Mode row renders ONLY vac-mode-offline chip. vac-mode-all/online/other correctly absent from DOM.",
+    "Offline chip toggle: aria-pressed false→true→false across two clicks.",
+    "Chip label shows offline count 'ऑफलाइन फॉर्म (191)'.",
+    "Scrollbar CSS: scrollbar-width=thin, scrollbar-color=rgba(148,163,184,0.4) transparent on light-theme body — light/subtle as required.",
+    "Poster palette container has data-testid=poster-accent-palette with exactly 8 swatches: navy, emerald, red, orange, purple, teal, magenta, slate.",
+    "Selecting emerald: swatch border becomes '3px solid rgb(15,23,42)' as required.",
+    "After Generate: organization bar, IMPORTANT HIGHLIGHTS band, SCAN QR band, QR frame border (2px solid rgb(5,150,105)), and website box border all show emerald — accent partially applied.",
+    "poster-download-btn present and click does not throw a page error. (Non-fatal console warnings from html-to-image trying to read cross-origin Google Fonts stylesheets — expected/benign.)"
+  ],
+  "test_report_links": ["/app/frontend/src/components/poster/Poster.jsx"],
+  "action_items": [
+    "Poster.jsx: replace hardcoded header gradient with a `brand`-derived gradient (e.g. build gradient from brand and a slightly darker variant) so header actually repaints per requirement.",
+    "Poster.jsx: pass an override for the Last Date InfoCard so its iconBg/labelColor uses brand (accent) instead of #7c3aed — that is the 'deadline pill' the spec refers to.",
+    "Poster.jsx: recolor the WhatsApp share banner (line ~538) using brand as the base gradient so 'footer' strip repaints too.",
+    "(FYI) Testing agent already fixed the `const brand = accentColor || brand;` self-reference bug on line 105 → now `accentColor || '#12307a'`."
+  ],
+  "critical_code_review_comments": [
+    "Poster.jsx line 105 was a self-referencing const initializer — classic TDZ bug. Any parent rendering <Poster/> without accentColor would have crashed the page.",
+    "Requirement mismatch: only ~50% of the promised 'poster header, deadline pill, QR frame border, footer' are actually accent-driven. QR frame border is the only fully-correct one; header/deadline-pill/footer are not.",
+    "html-to-image logs CSS SecurityErrors when trying to inline Google Fonts CSS (cross-origin). Not fatal (capture still works) but noisy in console — consider stripping the fonts.googleapis link from webFont embedding or hosting fonts locally."
+  ],
+  "updated_files": ["/app/frontend/src/components/poster/Poster.jsx"],
+  "success_rate": { "backend": "n/a (frontend-only)", "frontend": "6/8 = 75%" },
+  "seed_data_creation": "none",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iter15 covered mobile state filter, single offline mode chip, scrollbar theme, and poster brand-color palette. Tests 1-6 pass fully. Main outstanding gap: poster header/deadline-pill/whatsapp-banner still hardcoded — accent color only repaints organization bar, highlights band, QR band+border, website box, and text accents. If main agent fixes header/pill/banner to use brand, re-run TEST 7 (compare header bg to selected accent hex) and confirm no regression to default navy when no swatch clicked.",
+  "rca of the issue": "Poster.jsx received an `accentColor` prop and the developer replaced most `#12307a` occurrences with `brand`, but (1) missed the header-gradient / whatsapp-banner-gradient / Last Date InfoCard hardcoded colors, and (2) wrote a self-referencing fallback `const brand = accentColor || brand;` instead of a literal fallback."
+}

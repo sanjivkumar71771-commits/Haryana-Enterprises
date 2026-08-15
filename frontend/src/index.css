@@ -52,10 +52,26 @@ body {
 ::selection { background: rgba(16, 185, 129, 0.35); color: #fff; }
 
 /* Scrollbar */
+/* Global scrollbar — subtle light-mode default; dark-mode gets a tinted variant.
+   Keeps the whole page feeling clean and doesn't compete with the design. */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: #0a0f0d; }
-::-webkit-scrollbar-thumb { background: #1f2925; border-radius: 6px; }
-::-webkit-scrollbar-thumb:hover { background: #2a3833; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 0.55); background-clip: content-box; }
+* { scrollbar-width: thin; scrollbar-color: rgba(148,163,184,0.4) transparent; }
+body:not(.light-theme) ::-webkit-scrollbar-thumb {
+  background: rgba(71, 85, 105, 0.5);
+  background-clip: content-box;
+}
+body:not(.light-theme) ::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.7);
+  background-clip: content-box;
+}
 
 /* ─────────── Glassmorphism panel ─────────── */
 .glass {
@@ -431,6 +447,25 @@ select.input option, .input option {
 select.input option:checked, .input option:checked {
   background-color: #10b981 !important;
   color: #0f172a !important;
+}
+/* Mobile fix — iOS auto-zooms any <input>/<select> with font-size < 16px on focus,
+   which visibly breaks the filter row layout. Bump to 16px on small screens. */
+@media (max-width: 640px) {
+  .input, select.input { font-size: 16px; }
+  select.input { padding-right: 2.2rem; }
+}
+/* Native <select> dropdown options — LIGHT theme override so options are readable
+   on mobile where the OS picker inherits option colors. Without this, the picker
+   shows dark bg + dark text (invisible) on iOS/Android in light mode. */
+body.light-theme select.input option,
+body.light-theme .input option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+body.light-theme select.input option:checked,
+body.light-theme .input option:checked {
+  background-color: #10b981 !important;
+  color: #ffffff !important;
 }
 .label {
   display: block;

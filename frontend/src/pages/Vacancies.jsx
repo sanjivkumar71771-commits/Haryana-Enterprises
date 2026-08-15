@@ -344,32 +344,25 @@ const Vacancies = () => {
             })}
           </div>
 
-          {/* Application Mode Filter */}
+          {/* Application Mode Filter — vendor focuses on Offline Form services,
+              so we only show a single toggle chip. Click to filter, click again to reset. */}
           <div className="vac-mode-sep relative flex items-center gap-2 flex-wrap pt-2 border-t border-white/5">
             <span className="vac-mode-label text-[10px] uppercase tracking-widest text-slate-500 font-semibold mr-1">
               {lang === "hi" ? "आवेदन प्रकार" : "Application Mode"}:
             </span>
-            {[
-              { k: "all", hi: "सभी", en: "All" },
-              { k: "online", hi: "ऑनलाइन फॉर्म", en: "Online Form" },
-              { k: "offline", hi: "ऑफलाइन फॉर्म", en: "Offline Form" },
-              { k: "other", hi: "अन्य", en: "Other" },
-            ].map(m => (
-              <button
-                key={m.k}
-                onClick={() => setMode(m.k)}
-                className={`vac-mode-chip px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                  mode === m.k
-                    ? (m.k === "offline"
-                        ? "is-active-amber bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40"
-                        : "is-active-emerald bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30")
-                    : ""
-                }`}
-                data-testid={`vac-mode-${m.k}`}
-              >
-                {lang === "hi" ? m.hi : m.en} ({modeCounts[m.k] || 0})
-              </button>
-            ))}
+            <button
+              type="button"
+              onClick={() => setMode(mode === "offline" ? "all" : "offline")}
+              className={`vac-mode-chip px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                mode === "offline"
+                  ? "is-active-amber bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40"
+                  : ""
+              }`}
+              data-testid="vac-mode-offline"
+              aria-pressed={mode === "offline"}
+            >
+              {lang === "hi" ? "ऑफलाइन फॉर्म" : "Offline Form"} ({modeCounts.offline || 0})
+            </button>
           </div>
         </div>
       </div>
