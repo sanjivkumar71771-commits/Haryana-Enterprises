@@ -3,6 +3,7 @@ import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import AOS from "aos";
 import { Toaster } from "sonner";
+import { HelmetProvider } from "react-helmet-async";
 
 import { AuthProvider } from "@/context/AuthContext";
 import { I18nProvider } from "@/context/I18nContext";
@@ -85,11 +86,13 @@ function AppInner() {
 
 function App() {
   return (
-    <I18nProvider>
-      <AuthProvider>
-        <AppInner />
-      </AuthProvider>
-    </I18nProvider>
+    <HelmetProvider>
+      <I18nProvider>
+        <AuthProvider>
+          <AppInner />
+        </AuthProvider>
+      </I18nProvider>
+    </HelmetProvider>
   );
 }
 

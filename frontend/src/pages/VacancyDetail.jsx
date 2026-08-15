@@ -10,6 +10,7 @@ import {
 } from "react-icons/fa";
 import { toast } from "sonner";
 import ShareModal from "@/components/poster/ShareModal";
+import SEO from "@/components/SEO";
 
 const KIND_META = {
   apply:        { hi: "ऑनलाइन आवेदन",   en: "Apply Online",       icon: FaCheckCircle,     cls: "bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/15", iconCls: "text-emerald-400" },
@@ -120,8 +121,55 @@ const VacancyDetail = () => {
   const urgent = days !== null && days >= 0 && days <= 3;
   const expired = days !== null && days < 0;
 
+  // Parse posted / last date to ISO for JobPosting schema
+  const toIso = (txt) => {
+    if (!txt) return null;
+    const m = txt.match(/(\d{1,2})[-./ ](\d{1,2})[-./ ](\d{2,4})/);
+    if (!m) return null;
+    const [, d, mo, y] = m;
+    const yyyy = y.length === 2 ? `20${y}` : y;
+    return `${yyyy}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  };
+  const jobPostingJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "JobPosting",
+    title: v.post_name || v.title || "Government Vacancy",
+    description: (v.title || v.post_name || "") + (v.qualification ? ` — Qualification: ${v.qualification}` : ""),
+    identifier: {
+      "@type": "PropertyValue",
+      name: v.organization || "Government",
+      value: v.id || id,
+    },
+    datePosted: toIso(v.post_date_text) || new Date().toISOString().slice(0, 10),
+    validThrough: toIso(v.last_date_text) || undefined,
+    employmentType: "FULL_TIME",
+    hiringOrganization: {
+      "@type": "Organization",
+      name: v.organization || "Government of India",
+    },
+    jobLocation: {
+      "@type": "Place",
+      address: {
+        "@type": "PostalAddress",
+        addressCountry: "IN",
+      },
+    },
+    ...(v.qualification && {
+      qualifications: v.qualification,
+      educationRequirements: v.qualification,
+    }),
+    url: `https://hrdigitalservices.in/vacancies/${v.id || id}`,
+  };
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-10" data-testid="vacancy-detail-page">
+      <SEO
+        title={`${v.post_name || v.title || "Vacancy"} — ${v.organization || "Govt Job"}`.slice(0, 90)}
+        description={`${v.post_name || v.title || "Government vacancy"}${v.organization ? ` at ${v.organization}` : ""}${v.last_date_text ? `. Last date: ${v.last_date_text}` : ""}${v.qualification ? `. Qualification: ${v.qualification}` : ""}.`.slice(0, 280)}
+        path={`/vacancies/${v.id || id}`}
+        type="article"
+        jsonLd={jobPostingJsonLd}
+      />
       {/* Breadcrumb */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <Link to="/vacancies" className="link-mint inline-flex items-center gap-2 text-sm" data-testid="back-to-vacancies">
@@ -142,6 +190,57 @@ const VacancyDetail = () => {
           </button>
         </div>
       </div>
+
+      {/* Bright Last-Date Reminder / Expired banner — first thing users see */}
+      {expired ? (
+        <div className="mb-5 rounded-xl border-2 border-red-500/60 bg-gradient-to-r from-red-950/50 to-red-900/40 p-4 flex items-center gap-3" data-testid="vacancy-expired-banner">
+          <div className="w-11 h-11 rounded-full bg-red-500/20 border border-red-500/50 text-red-400 flex items-center justify-center text-xl shrink-0">
+            <FaClock />
+          </div>
+          <div className="flex-1">
+            <div className="text-red-300 font-extrabold text-lg tracking-wide">
+              {lang === "hi" ? "आवेदन की अंतिम तिथि समाप्त" : "APPLICATION DEADLINE EXPIRED"}
+            </div>
+            <div className="text-red-200/80 text-xs mt-0.5">
+              {lang === "hi"
+                ? `अंतिम तिथि ${v.last_date_text || "—"} थी। अब आवेदन स्वीकार नहीं हो सकता।`
+                : `Last date was ${v.last_date_text || "—"}. Applications are no longer accepted.`}
+            </div>
+          </div>
+        </div>
+      ) : urgent && v.last_date_text ? (
+        <div className="mb-5 rounded-xl border-2 border-red-500/60 bg-gradient-to-r from-red-500/15 via-orange-500/15 to-red-500/15 p-4 flex items-center gap-3 shadow-lg shadow-red-500/20 animate-pulse-slow" data-testid="vacancy-urgent-banner">
+          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-red-500 to-orange-500 text-white flex items-center justify-center text-xl shrink-0 shadow-lg shadow-red-500/40">
+            <FaClock />
+          </div>
+          <div className="flex-1">
+            <div className="text-transparent bg-clip-text bg-gradient-to-r from-red-300 to-orange-300 font-extrabold text-lg tracking-wide uppercase">
+              {days === 0
+                ? (lang === "hi" ? "आज अंतिम दिन!" : "LAST DAY TO APPLY!")
+                : days === 1
+                  ? (lang === "hi" ? "कल अंतिम तिथि!" : "TOMORROW IS THE LAST DATE!")
+                  : (lang === "hi" ? `केवल ${days} दिन बाकी` : `ONLY ${days} DAYS LEFT`)}
+            </div>
+            <div className="text-orange-200/90 text-xs mt-0.5">
+              {lang === "hi"
+                ? `अंतिम तिथि: ${v.last_date_text}। जल्दी आवेदन करें।`
+                : `Last date: ${v.last_date_text}. Apply as soon as possible.`}
+            </div>
+          </div>
+        </div>
+      ) : days !== null && days > 3 && v.last_date_text ? (
+        <div className="mb-5 rounded-xl border border-amber-500/40 bg-amber-500/[0.06] p-3 flex items-center gap-3" data-testid="vacancy-deadline-banner">
+          <div className="w-9 h-9 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-400 flex items-center justify-center shrink-0">
+            <FaClock />
+          </div>
+          <div className="text-sm text-amber-200">
+            <b>{lang === "hi" ? "अंतिम तिथि" : "Last date"}: </b>{v.last_date_text}
+            <span className="ml-2 text-amber-400/80">
+              ({lang === "hi" ? `${days} दिन बाकी` : `${days} days left`})
+            </span>
+          </div>
+        </div>
+      ) : null}
 
       {/* Header card */}
       <div className="glass p-6 mb-6" data-testid="vacancy-detail-header">

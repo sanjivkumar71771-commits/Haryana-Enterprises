@@ -24,6 +24,8 @@ SOURCES = [
     ("latest", "https://www.freejobalert.com/latest-notifications/"),
     ("sarkari", "https://www.freejobalert.com/sarkari-naukri/"),
     ("offline", "https://www.freejobalert.com/new-updates/"),
+    ("admit_card", "https://www.freejobalert.com/admit-card/"),
+    ("result", "https://sarkariresult.freejobalert.com/"),
 ]
 
 HEADERS = {
@@ -43,6 +45,9 @@ def _clean(text: str) -> str:
 
 def _cat_from_title(title: str) -> str:
     t = title.lower()
+    # Admit card / result take priority since they can mention other categories too
+    if any(k in t for k in ["admit card", "hall ticket", "call letter", "e-admit", "interview letter"]): return "admit_card"
+    if any(k in t for k in ["result", "cut off", "cut-off", "merit list", "final selection", "score card", "answer key"]): return "result"
     if any(k in t for k in ["ssc", "cgl", "chsl", "mts"]): return "ssc"
     if any(k in t for k in ["railway", "rrb", "ntpc"]): return "railway"
     if any(k in t for k in ["bank", "ibps", "sbi", "pnb", "iob", "nabfins", "rbi"]): return "bank"
@@ -54,6 +59,51 @@ def _cat_from_title(title: str) -> str:
     if any(k in t for k in ["engineer", "psu", "ongc", "iocl", "hpcl", "gail", "bhel", "ntpc"]): return "psu"
     if any(k in t for k in ["nurse", "doctor", "medical", "aiims", "esic", "hospital"]): return "medical"
     return "other"
+
+
+# ── Last-date parsing & expired detection ────────────────────────────────────
+_MONTHS = {m.lower(): i for i, m in enumerate(
+    ["", "January", "February", "March", "April", "May", "June",
+     "July", "August", "September", "October", "November", "December"], 0)}
+_MONTHS.update({m[:3].lower(): i for m, i in list(_MONTHS.items()) if m})
+
+
+def parse_last_date(text: str | None) -> datetime | None:
+    """Best-effort parse of a last-date string (dd/mm/yyyy, dd Month yyyy, dd-mm-yy)."""
+    if not text:
+        return None
+    s = text.strip()
+    # dd/mm/yyyy or dd-mm-yyyy or dd.mm.yyyy
+    m = re.search(r"(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})", s)
+    if m:
+        d, mo, y = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        if y < 100:
+            y += 2000
+        try:
+            return datetime(y, mo, d, tzinfo=timezone.utc)
+        except ValueError:
+            return None
+    # "dd Month yyyy"
+    m = re.search(r"(\d{1,2})\s+([A-Za-z]{3,9})\s+(\d{2,4})", s)
+    if m:
+        d = int(m.group(1)); mo = _MONTHS.get(m.group(2).lower())
+        y = int(m.group(3))
+        if y < 100: y += 2000
+        if mo:
+            try:
+                return datetime(y, mo, d, tzinfo=timezone.utc)
+            except ValueError:
+                return None
+    return None
+
+
+def is_expired(last_date_text: str | None, now: datetime | None = None) -> bool:
+    dt = parse_last_date(last_date_text)
+    if not dt:
+        return False
+    now = now or datetime.now(timezone.utc)
+    # Give one full extra day of grace (many portals accept until midnight IST)
+    return dt.date() < now.date()
 
 
 def _detect_application_mode(*texts: str) -> str | None:
@@ -182,6 +232,37 @@ def _parse_update_row(cells) -> Dict | None:
     }
 
 
+def _parse_grid_cell(cell, src_type: str) -> Dict | None:
+    """Parse a single grid cell (each cell is an anchor with the full title).
+
+    Used for admit-card / result pages where the layout is a grid of links.
+    """
+    a = cell.find("a", href=True)
+    if not a:
+        return None
+    href = a["href"].strip()
+    if not href.startswith("http"):
+        return None
+    title = _clean(a.get_text(" ", strip=True))
+    if not title or title.lower() in JUNK_TITLES or len(title) < 5:
+        return None
+    # Try to infer organization from first 1-2 words
+    words = title.split()
+    org = " ".join(words[:2]) if len(words) >= 2 else words[0]
+    return {
+        "title": title[:250],
+        "url": href,
+        "organization": org[:120],
+        "post_name": title[:200],
+        "qualification": "",
+        "post_date_text": "",
+        "last_date_text": None,
+        "application_mode": None,
+        "category": src_type,  # admit_card or result
+        "row_text": title[:500],
+    }
+
+
 async def fetch_freejobalert() -> List[Dict]:
     results: List[Dict] = []
     now = datetime.now(timezone.utc)
@@ -193,14 +274,48 @@ async def fetch_freejobalert() -> List[Dict]:
                     log.warning(f"FreeJobAlert {src_type}: HTTP {r.status_code}")
                     continue
                 soup = BeautifulSoup(r.text, "html.parser")
+                # Admit-card / result pages: iterate all article anchors directly
+                # (many tables have irregular cell structure; grid parsing missed 90% of items)
+                if src_type in ("admit_card", "result"):
+                    seen_urls = set()
+                    for a in soup.find_all("a", href=True):
+                        href = a["href"].strip()
+                        if "freejobalert.com/articles" not in href:
+                            continue
+                        if href in seen_urls:
+                            continue
+                        title = _clean(a.get_text(" ", strip=True))
+                        if not title or title.lower() in JUNK_TITLES or len(title) < 8:
+                            continue
+                        seen_urls.add(href)
+                        words = title.split()
+                        org = " ".join(words[:2]) if len(words) >= 2 else words[0]
+                        parsed = {
+                            "title": title[:250],
+                            "url": href,
+                            "organization": org[:120],
+                            "post_name": title[:200],
+                            "qualification": "",
+                            "post_date_text": "",
+                            "last_date_text": None,
+                            "application_mode": _detect_application_mode(title, href),
+                            "category": src_type,
+                            "row_text": title[:500],
+                            "source": "freejobalert",
+                            "source_type": src_type,
+                            "fetched_at": now,
+                        }
+                        results.append(parsed)
+                    continue  # skip regular tabular parser below
+
                 for table in soup.find_all("table"):
                     for row in table.find_all("tr"):
                         cells = row.find_all("td")
                         parsed = None
                         if len(cells) >= 6:
                             parsed = _parse_row(cells)
-                        elif src_type == "offline" and 2 <= len(cells) <= 4:
-                            # new-updates page — 3-column layout
+                        elif src_type in ("offline", "admit_card", "result") and 2 <= len(cells) <= 4:
+                            # new-updates / admit-card / result pages — 3-column layout
                             parsed = _parse_update_row(cells)
                         if not parsed:
                             continue
@@ -216,6 +331,10 @@ async def fetch_freejobalert() -> List[Dict]:
                             "source_type": src_type,
                             "fetched_at": now,
                         })
+                        # If we scraped from a dedicated Admit Card / Result page,
+                        # override category to that (title alone may not contain the word)
+                        if src_type in ("admit_card", "result"):
+                            parsed["category"] = src_type
                         results.append(parsed)
             except Exception as e:
                 log.error(f"FreeJobAlert {src_type} error: {e}")
@@ -233,12 +352,15 @@ async def fetch_freejobalert() -> List[Dict]:
         # Prefer non-None application_mode
         if not existing.get("application_mode") and v.get("application_mode"):
             existing["application_mode"] = v["application_mode"]
+        # Prefer admit_card/result category when merging (dedicated pages carry stronger signal)
+        if v.get("category") in ("admit_card", "result") and existing.get("category") not in ("admit_card", "result"):
+            existing["category"] = v["category"]
         # Backfill missing fields from later scrapes
         for k in ("qualification", "post_date_text", "last_date_text"):
             if not existing.get(k) and v.get(k):
                 existing[k] = v[k]
     out = list(by_url.values())
-    return out[:400]
+    return out[:800]
 
 
 async def refresh_vacancies_into_db(db) -> int:

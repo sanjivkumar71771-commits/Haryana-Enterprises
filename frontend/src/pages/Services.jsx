@@ -5,6 +5,7 @@ import {
   FaSearchLocation, FaHome, FaTools, FaHandshake, FaSolarPanel, FaHeadset,
   FaChevronRight, FaCheckCircle, FaShieldAlt,
 } from "react-icons/fa";
+import SEO from "@/components/SEO";
 
 const cards = [
   {
@@ -63,6 +64,13 @@ const Services = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-12" data-testid="services-page">
+      <SEO
+        title={hi ? "रूफटॉप सोलर सेवाएँ" : "Rooftop Solar Services"}
+        description={hi
+          ? "रूफटॉप सोलर परामर्श से लेकर आफ्टर-सेल्स सहायता तक — Haryana Enterprises की संपूर्ण सोलर सेवाएँ। साइट सर्वे, सिस्टम प्लानिंग, इंस्टॉलेशन सहायता।"
+          : "From rooftop solar consultation to after-sales support — end-to-end services by Haryana Enterprises. Site survey, system planning, installation assistance."}
+        path="/services"
+      />
       <div className="section-eyebrow">{hi ? "हमारी सेवाएँ" : "Our Services"}</div>
       <h1 className="section-title !text-3xl" data-testid="services-title">
         {hi ? "रूफटॉप सोलर सेवाएँ" : "Rooftop Solar Services"}

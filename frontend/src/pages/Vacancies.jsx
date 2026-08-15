@@ -7,6 +7,7 @@ import { useI18n } from "@/context/I18nContext";
 import { toast } from "sonner";
 import { FaSearch, FaExternalLinkAlt, FaSync, FaCalendarAlt, FaBriefcase, FaClock, FaChevronRight, FaGraduationCap, FaBuilding, FaFileAlt, FaGlobe, FaShareAlt } from "react-icons/fa";
 import ShareModal from "@/components/poster/ShareModal";
+import SEO from "@/components/SEO";
 
 const extractPostsFromText = (str) =>
   str && String(str).match(/(\d[\d,]*)\s*(post|vacan|seat)/i)?.[1];
@@ -44,6 +45,8 @@ const toPosterVacancy = (v) => {
 
 const CAT_LABELS = {
   all: { hi: "सभी", en: "All" },
+  admit_card: { hi: "एडमिट कार्ड", en: "Admit Card" },
+  result: { hi: "रिज़ल्ट", en: "Result" },
   ssc: { hi: "SSC", en: "SSC" },
   railway: { hi: "रेलवे", en: "Railway" },
   bank: { hi: "बैंक", en: "Bank" },
@@ -89,6 +92,7 @@ const Vacancies = () => {
   const [category, setCategory] = useState("all");
   const [qualification, setQualification] = useState("all");
   const [mode, setMode] = useState("all"); // all | online | offline
+  const [showExpired, setShowExpired] = useState(false);
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -101,6 +105,7 @@ const Vacancies = () => {
       if (category !== "all") params.set("category", category);
       if (qualification !== "all") params.set("qualification", qualification);
       if (mode !== "all") params.set("mode", mode);
+      if (showExpired) params.set("only_expired", "true");
       if (q) params.set("q", q);
       const [r1, r2] = await Promise.all([
         api.get(`/vacancies?${params.toString()}`),
@@ -112,7 +117,7 @@ const Vacancies = () => {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [category, qualification, mode]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [category, qualification, mode, showExpired]);
 
   const refresh = async () => {
     setRefreshing(true);
@@ -147,6 +152,13 @@ const Vacancies = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-10" data-testid="vacancies-page">
+      <SEO
+        title={lang === "hi" ? "ताज़ा सरकारी भर्तियाँ · Job Alerts" : "Latest Government Vacancies · Job Alerts"}
+        description={lang === "hi"
+          ? "ताज़ा सरकारी भर्तियों की सूची — पात्रता, अंतिम तिथि, आवेदन शुल्क और वेतन। SSC, Railway, Bank, UPSC, Defence, Teaching. छात्रों के लिए मुफ्त Job Alerts।"
+          : "Latest government job vacancies — eligibility, last date, application fee & salary. SSC, Railway, Bank, UPSC, Defence, Teaching. Free job alerts for students."}
+        path="/vacancies"
+      />
       <div className="flex items-start justify-between flex-wrap gap-3 mb-6">
         <div>
           <div className="section-eyebrow">Live Jobs Feed</div>
@@ -228,6 +240,22 @@ const Vacancies = () => {
               {lang === "hi" ? m.hi : m.en} ({modeCounts[m.k] || 0})
             </button>
           ))}
+          {/* Expired toggle — bright red so it's easy to spot */}
+          <button
+            onClick={() => setShowExpired(!showExpired)}
+            className={`ml-auto px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
+              showExpired
+                ? "bg-gradient-to-r from-red-500 to-orange-500 text-white border-red-400 shadow-lg shadow-red-500/30"
+                : "bg-slate-700/40 text-slate-400 border-slate-600/40 hover:text-red-300 hover:border-red-500/40"
+            }`}
+            data-testid="vac-toggle-expired"
+            title={lang === "hi" ? "समाप्त हो चुकी भर्तियाँ दिखाएँ" : "Show expired vacancies"}
+          >
+            <FaClock className="inline mr-1 text-[10px]" />
+            {lang === "hi"
+              ? `${showExpired ? "समाप्त छिपाएँ" : "समाप्त देखें"} (${stats?.expired || 0})`
+              : `${showExpired ? "Hide Expired" : "Show Expired"} (${stats?.expired || 0})`}
+          </button>
         </div>
       </div>
 
@@ -244,11 +272,25 @@ const Vacancies = () => {
           {filtered.map((v, i) => {
             const days = daysRemaining(v.last_date_text);
             const urgent = days !== null && days >= 0 && days <= 3;
-            const expired = days !== null && days < 0;
+            const expired = (v.is_expired === true) || (days !== null && days < 0);
             return (
               <Link key={v.id || v.url + i} to={`/vacancies/${v.id}`}
-                className={`glass p-4 hover:border-emerald-500/40 transition group block relative ${expired ? "opacity-60" : ""}`}
+                className={`glass p-4 hover:border-emerald-500/40 transition group block relative ${expired ? "opacity-60" : ""} ${urgent ? "ring-2 ring-red-500/40" : ""}`}
                 data-testid={`vacancy-${i}`}>
+                {/* URGENT / EXPIRED banner — bright, top strip so it's the first thing users notice */}
+                {expired && (
+                  <div className="absolute -top-2 left-3 z-20 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-700 text-slate-200 text-[10px] font-bold uppercase tracking-widest shadow" data-testid={`vacancy-expired-${i}`}>
+                    <FaClock className="text-[10px]" /> {lang === "hi" ? "समाप्त" : "Expired"}
+                  </div>
+                )}
+                {urgent && !expired && (
+                  <div className="absolute -top-2 left-3 z-20 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-gradient-to-r from-red-500 to-orange-500 text-white text-[10px] font-extrabold uppercase tracking-widest shadow-lg shadow-red-500/40 animate-pulse" data-testid={`vacancy-urgent-${i}`}>
+                    <FaClock className="text-[10px]" />
+                    {days === 0
+                      ? (lang === "hi" ? "आज अंतिम दिन!" : "LAST DAY!")
+                      : (lang === "hi" ? `केवल ${days} दिन बाकी` : `Only ${days} day${days === 1 ? "" : "s"} left`)}
+                  </div>
+                )}
                 {/* Share Poster floating button — pill style so users understand it's a poster share */}
                 <button
                   type="button"

@@ -7,6 +7,7 @@ import {
   FaUser, FaPhone, FaEnvelope, FaCommentDots, FaHeadset,
   FaCheckCircle, FaShieldAlt, FaWhatsapp, FaClock, FaMapMarkerAlt
 } from "react-icons/fa";
+import SEO from "@/components/SEO";
 
 const SERVICES = [
   { hi: "सोलर परामर्श (Solar Consultation)", en: "Solar Consultation" },
@@ -114,6 +115,13 @@ const Enquiry = () => {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-10" data-testid="enquiry-page">
+      <SEO
+        title={lang === "hi" ? "सोलर पूछताछ · Free Site Survey" : "Solar Enquiry · Free Site Survey"}
+        description={lang === "hi"
+          ? "रूफटॉप सोलर परामर्श, साइट सर्वे या इंस्टॉलेशन जानकारी के लिए मुफ्त पूछताछ। कागदाना, सिरसा से पेशेवर सेवा। कोई एडवांस नहीं।"
+          : "Free enquiry for rooftop solar consultation, site survey or installation. Professional service from Kagdana, Sirsa. No advance payment."}
+        path="/enquiry"
+      />
       <div className="mb-6">
         <div className="section-eyebrow">Customer Enquiry</div>
         <h1 className="section-title !text-3xl" data-testid="enquiry-title">

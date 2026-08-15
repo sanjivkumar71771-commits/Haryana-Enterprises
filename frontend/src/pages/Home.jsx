@@ -6,6 +6,7 @@ import api from "@/lib/api";
 import Marquee from "react-fast-marquee";
 import SolarCalculator from "@/components/SolarCalculator";
 import SchemesInfo from "@/components/SchemesInfo";
+import SEO from "@/components/SEO";
 import {
   FaSolarPanel, FaMoneyBillWave, FaFileSignature, FaSearchLocation, FaTools,
   FaCheckCircle, FaChevronRight,
@@ -233,8 +234,61 @@ const Home = () => {
   const { t, lang } = useI18n();
   const heroBg = "https://images.unsplash.com/photo-1655300256335-beef51a914fe?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTB8MHwxfHNlYXJjaHw0fHxyb29mdG9wJTIwc29sYXIlMjBwYW5lbHMlMjBob21lfGVufDB8fHx8MTc4NTM4NzQzNHww&ixlib=rb-4.1.0&q=85";
 
+  const localBusinessJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    name: "Haryana Enterprises",
+    image: "https://hrdigitalservices.in/og-cover.png",
+    "@id": "https://hrdigitalservices.in/#localbusiness",
+    url: "https://hrdigitalservices.in/",
+    telephone: "+91-8168762016",
+    priceRange: "₹₹",
+    description:
+      "Government-approved rooftop solar vendor in Kagdana, Sirsa. Consultation, site assessment, installation assistance and general information on government solar schemes. Also publishes latest government job vacancies for students.",
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: "200 Mtr From Bus Stand, Begu-Bhadra Road, Kagdana",
+      addressLocality: "Sirsa",
+      addressRegion: "Haryana",
+      postalCode: "125055",
+      addressCountry: "IN",
+    },
+    areaServed: [
+      { "@type": "State", name: "Haryana" },
+      { "@type": "AdministrativeArea", name: "Sirsa District" },
+    ],
+    sameAs: [
+      "https://wa.me/918168762016",
+    ],
+    openingHoursSpecification: {
+      "@type": "OpeningHoursSpecification",
+      dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+      opens: "09:00",
+      closes: "19:00",
+    },
+    hasOfferCatalog: {
+      "@type": "OfferCatalog",
+      name: "Rooftop Solar Services",
+      itemListElement: [
+        { "@type": "Offer", itemOffered: { "@type": "Service", name: "Solar Consultation" } },
+        { "@type": "Offer", itemOffered: { "@type": "Service", name: "Site Assessment" } },
+        { "@type": "Offer", itemOffered: { "@type": "Service", name: "Solar System Planning" } },
+        { "@type": "Offer", itemOffered: { "@type": "Service", name: "Installation Assistance" } },
+        { "@type": "Offer", itemOffered: { "@type": "Service", name: "After-Sales Support" } },
+      ],
+    },
+  };
+
   return (
     <div id="main-content" data-testid="home-page">
+      <SEO
+        title=""
+        description={lang === "hi"
+          ? "कागदाना, सिरसा का सरकार अनुमोदित रूफटॉप सोलर वेंडर। मुफ्त परामर्श, साइट सर्वे व इंस्टॉलेशन सहायता। साथ में छात्रों के लिए ताज़ा सरकारी भर्तियाँ।"
+          : "Kagdana, Sirsa's Government-approved rooftop solar vendor. Free consultation, site survey & installation assistance. Plus latest sarkari job alerts for students."}
+        path="/"
+        jsonLd={localBusinessJsonLd}
+      />
       {/* ─────────── HERO ─────────── */}
       <section className="hero-wrap" data-testid="hero-section">
         <div className="hero-bg" style={{ backgroundImage: `url(${heroBg})` }}></div>

@@ -1,0 +1,37 @@
+{
+  "summary": "SEO overhaul tested end-to-end. All backend SEO endpoints (/api/robots.txt, /api/sitemap.xml with 509 URLs including homepage + vacancy detail pages, /googlefc5dc2adef5e4a7e.html, static /robots.txt) work correctly. Home LocalBusiness JSON-LD & VacancyDetail JobPosting JSON-LD parse cleanly with all required fields. Titles override correctly on every route (no 'Emergent | Fullstack App' regression). Enquiry POST still returns 200 ok:true. Vacancies list filter buttons + share-poster pills render as before. However, react-helmet-async is NOT deduping the static <meta name=description> and <link rel=canonical> defined in public/index.html; instead it appends a SECOND tag. document.querySelector() returns the STATIC (first) one so page-specific canonical/description are not reachable via querySelector on Vacancies/VacancyDetail/Enquiry/Services pages.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "SEO / index.html",
+        "issue": "Duplicate <meta name=description> and <link rel=canonical> on every route. Static tags in public/index.html remain in DOM, and Helmet APPENDS its own tags below them. As a result document.querySelector('meta[name=description]').content and document.querySelector('link[rel=canonical]').href return the DEFAULT index.html values, NOT the page-specific ones. Same issue for meta[property=og:url]/og:title/og:description/twitter:*. Verified on /vacancies/<id>: two canonical links present — first https://hrdigitalservices.in/ (static), second https://hrdigitalservices.in/vacancies/<id> (helmet). Crawlers may still index correctly (some read all), but this fails the review spec (VacancyDetail canonical must point to /vacancies/<same-id> via first match) and is bad SEO hygiene (duplicate canonical is ambiguous).",
+        "selector": "meta[name='description'], link[rel='canonical']",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_seo_endpoints.py",
+    "/app/test_reports/pytest/seo_results.xml"
+  ],
+  "action_items": [
+    "In /app/frontend/public/index.html REMOVE the following static tags so Helmet becomes the sole source: <meta name='description'>, <link rel='canonical'>, <meta property='og:title'>, <meta property='og:description'>, <meta property='og:url'>, <meta name='twitter:title'>, <meta name='twitter:description'>, <meta name='twitter:image'>. KEEP: <title>, keywords, robots, author, google-site-verification, og:type, og:site_name, og:locale, og:image (defaults). Helmet will then inject fresh, page-specific tags with no duplicates.",
+    "Alternatively add `data-react-helmet=\"true\"` attribute (or `data-rh=\"true\"` for helmet-async) to the static meta/link tags in index.html so react-helmet-async recognises and manages them (upstream behavior varies; removing is safer)."
+  ],
+  "critical_code_review_comments": [
+    "public/index.html — Hardcoded SEO tags conflict with react-helmet-async; duplicates emitted on every route. Should be minimal defaults only.",
+    "SEO.jsx — Path prop is used to build canonical URL, but query strings (e.g. /enquiry?service=Solar%20Consultation) aren't stripped/normalised. If linked externally with query params, canonical may end up dynamic. Consider passing only pathname.",
+    "SEO.jsx — jobPosting toIso in VacancyDetail: handles ambiguous 'DD-MM-YYYY' or 'DD.MM.YYYY' but assumes first number is day. Fine for Indian format but no timezone; Google Rich Results may warn."
+  ],
+  "updated_files": ["/app/backend/tests/test_seo_endpoints.py"],
+  "success_rate": {"backend": "100%", "frontend": "85%"},
+  "test_credentials": "none required",
+  "seed_data_creation": "none",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend SEO endpoints fully green (see test_seo_endpoints.py). Only remaining fix is removing duplicate static meta/link tags from public/index.html. After main agent's fix, re-verify by running the browser evaluate script over /, /vacancies, /vacancies/<id>: assert querySelectorAll('meta[name=description]').length === 1 and querySelectorAll('link[rel=canonical]').length === 1, then re-check that canonical on VacancyDetail ends with /vacancies/<id>. A representative real vacancy id: 6a8048b05111204f9e11dd20.",
+  "rca of the issue": "react-helmet-async only manages tags it renders itself. Static <meta name=description> and <link rel=canonical> hard-coded in public/index.html remain in the DOM permanently. When SEO component renders, Helmet appends NEW tags with the same name/rel to <head> — resulting in two of each. document.querySelector returns the first match (the static one), so tests reading via querySelector see the DEFAULT description/canonical rather than the page-specific override. Mitigation: strip the duplicated static tags from index.html and let Helmet own them."
+}

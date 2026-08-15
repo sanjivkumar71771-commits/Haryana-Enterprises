@@ -14,7 +14,7 @@ from typing import Optional, List
 
 import httpx
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, Body, UploadFile, File, Form
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, PlainTextResponse
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr, ConfigDict
 from starlette.middleware.cors import CORSMiddleware
@@ -32,7 +32,7 @@ from auth import (
 )
 from emails import send_email, send_email_async, render_confirmation, render_reset
 from csc_services import CSC_CATEGORIES, all_service_ids, find_service
-from scrapers import fetch_freejobalert, refresh_vacancies_into_db, fetch_article_detail, backfill_application_mode
+from scrapers import fetch_freejobalert, refresh_vacancies_into_db, fetch_article_detail, backfill_application_mode, is_expired, parse_last_date
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 # MongoDB
@@ -382,6 +382,62 @@ async def create_contact(payload: ContactIn):
     return {"id": str(res.inserted_id), "ok": True}
 
 
+# ─────────── SEO: dynamic vacancy sitemap (referenced by /sitemap.xml sitemap index at site root) ───────────
+SITE_URL = os.environ.get("PUBLIC_SITE_URL", "https://hrdigitalservices.in").rstrip("/")
+
+
+@api.get("/sitemap-vacancies.xml", response_class=Response)
+async def sitemap_vacancies_xml():
+    urls = []
+    today = datetime.now(timezone.utc).date().isoformat()
+    try:
+        async for v in db.vacancies.find(
+            {}, {"_id": 1, "fetched_at": 1}, sort=[("fetched_at", -1)]
+        ).limit(500):
+            fetched = v.get("fetched_at")
+            lastmod = fetched.date().isoformat() if fetched else today
+            urls.append(
+                f"  <url><loc>{SITE_URL}/vacancies/{str(v['_id'])}</loc>"
+                f"<lastmod>{lastmod}</lastmod>"
+                f"<changefreq>weekly</changefreq>"
+                f"<priority>0.7</priority></url>"
+            )
+    except Exception as e:
+        log.warning(f"sitemap vacancies query failed: {e}")
+
+    body = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        + "\n".join(urls)
+        + "\n</urlset>\n"
+    )
+    return Response(content=body, media_type="application/xml")
+
+
+# Legacy endpoint kept for backwards-compatibility: redirect to the site-root sitemap.
+@api.get("/sitemap.xml", response_class=Response)
+async def legacy_sitemap_redirect():
+    return Response(
+        content=f'<?xml version="1.0" encoding="UTF-8"?>\n'
+                f'<!-- Sitemap moved to site root -->\n'
+                f'<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+                f'  <sitemap><loc>{SITE_URL}/sitemap.xml</loc></sitemap>\n'
+                f'</sitemapindex>\n',
+        media_type="application/xml",
+    )
+
+
+@api.get("/robots.txt", response_class=PlainTextResponse)
+async def robots_txt_legacy():
+    """Legacy alias — the canonical robots.txt is served statically at the site root."""
+    return (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "Disallow: /api/\n"
+        f"Sitemap: {SITE_URL}/sitemap.xml\n"
+    )
+
+
 # ─────────── Customer Enquiry (public, minimal fields) ───────────
 @api.post("/enquiry")
 async def create_enquiry(payload: EnquiryIn):
@@ -507,12 +563,25 @@ async def get_downloads():
 
 
 # ─────────── Vacancies (FreeJobAlert scraper) ───────────
+def _annotate_and_filter_vacancy_expired(items: list, include_expired: bool = False) -> list:
+    """Compute `is_expired` for each vacancy on the fly and (optionally) filter them out."""
+    out = []
+    for v in items:
+        v["is_expired"] = is_expired(v.get("last_date_text"))
+        if v["is_expired"] and not include_expired:
+            continue
+        out.append(v)
+    return out
+
+
 @api.get("/vacancies")
 async def list_vacancies(
     category: Optional[str] = None,
     q: Optional[str] = None,
     qualification: Optional[str] = None,
     mode: Optional[str] = None,
+    include_expired: bool = False,
+    only_expired: bool = False,
     limit: int = 500,
 ):
     query = {}
@@ -531,23 +600,52 @@ async def list_vacancies(
             {"post_name": {"$regex": q, "$options": "i"}},
             {"row_text": {"$regex": q, "$options": "i"}},
         ]
-    items = await db.vacancies.find(query).sort("fetched_at", -1).to_list(min(limit, 1000))
-    return [doc_public(v) for v in items]
+    # When user explicitly wants expired items OR wants to include them,
+    # we need to scan more docs because they tend to be older (sort=fetched_at desc)
+    effective_limit = 1000 if (only_expired or include_expired) else min(limit, 1000)
+    items = await db.vacancies.find(query).sort("fetched_at", -1).to_list(effective_limit)
+    public = [doc_public(v) for v in items]
+    for v in public:
+        v["is_expired"] = is_expired(v.get("last_date_text"))
+    if only_expired:
+        return [v for v in public if v["is_expired"]]
+    if not include_expired:
+        return [v for v in public if not v["is_expired"]]
+    return public
 
 
 @api.get("/vacancies/stats")
 async def vacancies_stats():
-    total = await db.vacancies.count_documents({})
-    by_cat_pipeline = [{"$group": {"_id": "$category", "count": {"$sum": 1}}}]
-    by_cat = [{"category": r["_id"] or "other", "count": r["count"]} async for r in db.vacancies.aggregate(by_cat_pipeline)]
+    # We compute expiry client-side on the "last_date_text" field, so aggregate manually
+    all_items = await db.vacancies.find({}, {
+        "category": 1, "application_mode": 1, "last_date_text": 1, "fetched_at": 1,
+    }).to_list(2000)
 
-    online_count = await db.vacancies.count_documents({"application_mode": "online"})
-    offline_count = await db.vacancies.count_documents({"application_mode": "offline"})
+    total_including_expired = len(all_items)
+    active_items = [v for v in all_items if not is_expired(v.get("last_date_text"))]
+    expired_count = total_including_expired - len(active_items)
+    total = len(active_items)  # "all" count excludes expired per requirement
+
+    by_cat_counts: dict = {}
+    for v in active_items:
+        c = v.get("category") or "other"
+        by_cat_counts[c] = by_cat_counts.get(c, 0) + 1
+    by_cat = [{"category": c, "count": n} for c, n in by_cat_counts.items()]
+
+    online_count = sum(1 for v in active_items if v.get("application_mode") == "online")
+    offline_count = sum(1 for v in active_items if v.get("application_mode") == "offline")
     by_mode = {"all": total, "online": online_count, "offline": offline_count}
 
     latest = await db.vacancies.find({}, sort=[("fetched_at", -1)], limit=1).to_list(1)
     last_updated = latest[0]["fetched_at"].isoformat() if latest and latest[0].get("fetched_at") else None
-    return {"total": total, "by_category": by_cat, "by_mode": by_mode, "last_updated": last_updated}
+    return {
+        "total": total,
+        "total_including_expired": total_including_expired,
+        "expired": expired_count,
+        "by_category": by_cat,
+        "by_mode": by_mode,
+        "last_updated": last_updated,
+    }
 
 
 @api.get("/vacancies/{vac_id}")

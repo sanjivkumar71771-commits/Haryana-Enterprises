@@ -16,7 +16,12 @@ const Header = () => {
   const [moreOpen, setMoreOpen] = useState(false);
 
   const [fontSize, setFontSize] = useState(localStorage.getItem("fontSize") || "normal");
-  const [light, setLight] = useState(localStorage.getItem("lightTheme") === "1");
+  // Light mode is DEFAULT — dark applies only when user explicitly toggles.
+  // A missing localStorage key ('lightTheme' == null) means first visit → default to light.
+  const [light, setLight] = useState(() => {
+    const saved = localStorage.getItem("lightTheme");
+    return saved === null ? true : saved === "1";
+  });
 
   useEffect(() => {
     document.body.classList.remove("font-large", "font-small");
