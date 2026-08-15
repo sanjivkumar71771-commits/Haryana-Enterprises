@@ -45,6 +45,9 @@
             var saved = localStorage.getItem("lightTheme");
             if (saved === null || saved === "1") {
               document.documentElement.classList.add("prefers-light");
+              document.addEventListener("DOMContentLoaded", function () {
+                document.body && document.body.classList.add("light-theme");
+              });
             }
           } catch (e) {}
         </script>

@@ -8,6 +8,7 @@ load_dotenv(ROOT_DIR / ".env")
 import os
 import logging
 import uuid
+import re
 import secrets
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List
@@ -585,21 +586,40 @@ async def list_vacancies(
     limit: int = 500,
 ):
     query = {}
-    if category and category != "all":
+    # Haryana is a "cross-cutting" view: include any vacancy tagged as haryana
+    # OR any vacancy whose title/organization mentions Haryana / HSSC / HPSC etc.
+    haryana_rx = r"\b(haryana|hssc|hpsc|hbse|hkrn|hprb|panchkula|chandigarh)\b"
+    if category == "haryana":
+        query["$or"] = [
+            {"category": "haryana"},
+            {"title": {"$regex": haryana_rx, "$options": "i"}},
+            {"organization": {"$regex": haryana_rx, "$options": "i"}},
+            {"post_name": {"$regex": haryana_rx, "$options": "i"}},
+            {"row_text": {"$regex": haryana_rx, "$options": "i"}},
+        ]
+    elif category and category != "all":
         query["category"] = category
     if qualification and qualification != "all":
         query["qualification"] = {"$regex": qualification, "$options": "i"}
     if mode == "other":
-        query["application_mode"] = None
+        query["$and"] = query.get("$and", []) + [{
+            "$or": [{"application_mode": None}, {"application_mode": {"$exists": False}}]
+        }]
     elif mode and mode in ("online", "offline"):
         query["application_mode"] = mode
     if q:
-        query["$or"] = [
+        text_or = [
             {"title": {"$regex": q, "$options": "i"}},
             {"organization": {"$regex": q, "$options": "i"}},
             {"post_name": {"$regex": q, "$options": "i"}},
             {"row_text": {"$regex": q, "$options": "i"}},
         ]
+        # Preserve existing $or (haryana) by moving both into $and
+        if "$or" in query:
+            query.setdefault("$and", []).append({"$or": query.pop("$or")})
+            query["$and"].append({"$or": text_or})
+        else:
+            query["$or"] = text_or
     # When user explicitly wants expired items OR wants to include them,
     # we need to scan more docs because they tend to be older (sort=fetched_at desc)
     effective_limit = 1000 if (only_expired or include_expired) else min(limit, 1000)
@@ -619,6 +639,7 @@ async def vacancies_stats():
     # We compute expiry client-side on the "last_date_text" field, so aggregate manually
     all_items = await db.vacancies.find({}, {
         "category": 1, "application_mode": 1, "last_date_text": 1, "fetched_at": 1,
+        "title": 1, "organization": 1, "post_name": 1, "row_text": 1,
     }).to_list(2000)
 
     total_including_expired = len(all_items)
@@ -630,11 +651,23 @@ async def vacancies_stats():
     for v in active_items:
         c = v.get("category") or "other"
         by_cat_counts[c] = by_cat_counts.get(c, 0) + 1
+
+    # Haryana is a cross-cutting view — include vacancies from any category whose
+    # title/organization mentions Haryana / HSSC / HPSC etc. (matches list_vacancies)
+    haryana_re = re.compile(r"\b(haryana|hssc|hpsc|hbse|hkrn|hprb|panchkula|chandigarh)\b", re.I)
+    haryana_count = 0
+    for v in active_items:
+        blob = " ".join([str(v.get(k) or "") for k in ("title", "organization", "post_name", "row_text")])
+        if v.get("category") == "haryana" or haryana_re.search(blob):
+            haryana_count += 1
+    by_cat_counts["haryana"] = haryana_count
+
     by_cat = [{"category": c, "count": n} for c, n in by_cat_counts.items()]
 
     online_count = sum(1 for v in active_items if v.get("application_mode") == "online")
     offline_count = sum(1 for v in active_items if v.get("application_mode") == "offline")
-    by_mode = {"all": total, "online": online_count, "offline": offline_count}
+    other_count = sum(1 for v in active_items if not v.get("application_mode"))
+    by_mode = {"all": total, "online": online_count, "offline": offline_count, "other": other_count}
 
     latest = await db.vacancies.find({}, sort=[("fetched_at", -1)], limit=1).to_list(1)
     last_updated = latest[0]["fetched_at"].isoformat() if latest and latest[0].get("fetched_at") else None

@@ -27,6 +27,6 @@
   "seed_data_creation": "Tests create TEST_ prefixed contacts, solar & loan applications, one notice (auto-deleted). No cleanup fixture — safe volume.",
   "retest_needed": false,
   "main_agent_can_self_test": true,
-  "context_for_next_testing_agent": "backend_test.py has 40 tests. All Iteration-2 additions (auth/session, admin/*, uuid user_id, logout session clearing) are green. Only failure is legacy test_google_auth_stub expecting removed /api/auth/google endpoint — either delete that test or restore endpoint. Base URL: https://haryana-enterprises.preview.emergentagent.com/api. Run: pytest /app/backend/tests/backend_test.py -v",
+  "context_for_next_testing_agent": "backend_test.py has 40 tests. All Iteration-2 additions (auth/session, admin/*, uuid user_id, logout session clearing) are green. Only failure is legacy test_google_auth_stub expecting removed /api/auth/google endpoint — either delete that test or restore endpoint. Base URL: https://rooftop-solar-jobs.preview.emergentagent.com/api. Run: pytest /app/backend/tests/backend_test.py -v",
   "rca of the issue": "test_google_auth_stub failure RCA: The /api/auth/google demo endpoint was intentionally removed by main agent when replacing the demo stub with real Emergent Google OAuth via /api/auth/session. The existing test from iteration 1 was not updated. Mitigation: delete the test function or replace with a smoke test on /api/auth/session (which is already covered by new tests test_auth_session_missing_header and test_auth_session_fake_id_returns_401)."
 }

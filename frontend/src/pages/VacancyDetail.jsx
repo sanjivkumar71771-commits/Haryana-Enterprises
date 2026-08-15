@@ -229,13 +229,14 @@ const VacancyDetail = () => {
           </div>
         </div>
       ) : days !== null && days > 3 && v.last_date_text ? (
-        <div className="mb-5 rounded-xl border border-amber-500/40 bg-amber-500/[0.06] p-3 flex items-center gap-3" data-testid="vacancy-deadline-banner">
-          <div className="w-9 h-9 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-400 flex items-center justify-center shrink-0">
+        <div className="mb-5 rounded-xl border border-red-400/50 bg-red-500/[0.08] p-3 flex items-center gap-3" data-testid="vacancy-deadline-banner">
+          <div className="w-9 h-9 rounded-full bg-red-500/20 border border-red-500/50 text-red-500 flex items-center justify-center shrink-0">
             <FaClock />
           </div>
-          <div className="text-sm text-amber-200">
-            <b>{lang === "hi" ? "अंतिम तिथि" : "Last date"}: </b>{v.last_date_text}
-            <span className="ml-2 text-amber-400/80">
+          <div className="text-sm text-red-700 dark:text-red-200 font-semibold">
+            <b className="font-bold">{lang === "hi" ? "अंतिम तिथि" : "Last Date"}: </b>
+            <span className="text-red-800 dark:text-red-100">{v.last_date_text}</span>
+            <span className="ml-2 text-red-500 dark:text-red-300 font-bold">
               ({lang === "hi" ? `${days} दिन बाकी` : `${days} days left`})
             </span>
           </div>

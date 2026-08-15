@@ -92,7 +92,6 @@ const Vacancies = () => {
   const [category, setCategory] = useState("all");
   const [qualification, setQualification] = useState("all");
   const [mode, setMode] = useState("all"); // all | online | offline
-  const [showExpired, setShowExpired] = useState(false);
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -105,7 +104,6 @@ const Vacancies = () => {
       if (category !== "all") params.set("category", category);
       if (qualification !== "all") params.set("qualification", qualification);
       if (mode !== "all") params.set("mode", mode);
-      if (showExpired) params.set("only_expired", "true");
       if (q) params.set("q", q);
       const [r1, r2] = await Promise.all([
         api.get(`/vacancies?${params.toString()}`),
@@ -117,7 +115,7 @@ const Vacancies = () => {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [category, qualification, mode, showExpired]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [category, qualification, mode]);
 
   const refresh = async () => {
     setRefreshing(true);
@@ -131,10 +129,19 @@ const Vacancies = () => {
   };
 
   const filtered = useMemo(() => {
-    // mode is now filtered server-side, only apply text search client-side
-    if (!q) return items;
+    // Dedupe by URL to guarantee no duplicate cards even if the DB has near-duplicates
+    const seen = new Set();
+    const list = [];
+    for (const it of items) {
+      const key = it.url || it.id;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      list.push(it);
+    }
+    // mode is filtered server-side, only apply text search client-side
+    if (!q) return list;
     const s = q.toLowerCase();
-    return items.filter(i =>
+    return list.filter(i =>
       i.title?.toLowerCase().includes(s) ||
       i.organization?.toLowerCase().includes(s) ||
       i.post_name?.toLowerCase().includes(s)
@@ -182,80 +189,98 @@ const Vacancies = () => {
       {/* Job Alert Subscription (Free) */}
       <JobAlertSubscribe />
 
-      {/* Search + Filters */}
-      <div className="glass p-4 mb-6 space-y-3">
-        <div className="flex flex-col md:flex-row gap-3">
-          <form onSubmit={(e) => { e.preventDefault(); load(); }} className="input-icon-wrap flex-1">
-            <FaSearch className="icon" />
-            <input className="input" placeholder={lang === "hi" ? "खोजें… (SSC, PNB, teacher…)" : "Search… (SSC, PNB, teacher…)"}
-              value={q} onChange={(e) => setQ(e.target.value)} data-testid="vacancies-search" />
-          </form>
-          <select
-            value={qualification}
-            onChange={(e) => setQualification(e.target.value)}
-            className="input md:w-56"
-            data-testid="vacancies-qualification-filter"
-          >
-            {QUALIFICATIONS.map(qOpt => (
-              <option key={qOpt.key} value={qOpt.key}>{lang === "hi" ? qOpt.hi : qOpt.en}</option>
-            ))}
-          </select>
-        </div>
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {Object.entries(CAT_LABELS).map(([k, v]) => {
-            const cnt = k === "all" ? stats?.total : stats?.by_category?.find(c => c.category === k)?.count;
-            return (
-              <button key={k} onClick={() => setCategory(k)}
-                className={`px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap ${category === k ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" : "bg-white/[0.03] text-slate-400 border border-white/10 hover:text-white"}`}
-                data-testid={`vac-cat-${k}`}>
-                {lang === "hi" ? v.hi : v.en} {cnt !== undefined && `(${cnt})`}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Application Mode Filter */}
-        <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-white/5">
-          <span className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold mr-1">
-            {lang === "hi" ? "आवेदन प्रकार" : "Application Mode"}:
-          </span>
-          {[
-            { k: "all", hi: "सभी", en: "All" },
-            { k: "online", hi: "ऑनलाइन फॉर्म", en: "Online Form" },
-            { k: "offline", hi: "ऑफलाइन फॉर्म", en: "Offline Form" },
-            { k: "other", hi: "अन्य", en: "Other" },
-          ].map(m => (
-            <button
-              key={m.k}
-              onClick={() => setMode(m.k)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                mode === m.k
-                  ? (m.k === "offline"
-                      ? "bg-amber-500/15 text-amber-300 border border-amber-500/40"
-                      : "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30")
-                  : "bg-white/[0.03] text-slate-400 border border-white/10 hover:text-white"
-              }`}
-              data-testid={`vac-mode-${m.k}`}
+      {/* Search + Filters — premium panel with subtle gradient border */}
+      <div className="relative rounded-2xl p-[1px] bg-gradient-to-br from-emerald-500/30 via-transparent to-amber-500/20 mb-6" data-testid="vacancies-filter-panel">
+        <div className="glass-strong rounded-2xl p-5 space-y-4 relative overflow-hidden">
+          <div className="absolute -top-24 -right-24 w-64 h-64 rounded-full bg-emerald-500/8 blur-3xl pointer-events-none"></div>
+          <div className="absolute -bottom-24 -left-24 w-64 h-64 rounded-full bg-amber-500/8 blur-3xl pointer-events-none"></div>
+          <div className="relative flex flex-col md:flex-row gap-3">
+            <form onSubmit={(e) => { e.preventDefault(); load(); }} className="input-icon-wrap flex-1">
+              <FaSearch className="icon" />
+              <input className="input" placeholder={lang === "hi" ? "खोजें… (SSC, PNB, teacher…)" : "Search… (SSC, PNB, teacher…)"}
+                value={q} onChange={(e) => setQ(e.target.value)} data-testid="vacancies-search" />
+            </form>
+            <select
+              value={qualification}
+              onChange={(e) => setQualification(e.target.value)}
+              className="input md:w-56"
+              data-testid="vacancies-qualification-filter"
             >
-              {lang === "hi" ? m.hi : m.en} ({modeCounts[m.k] || 0})
-            </button>
-          ))}
-          {/* Expired toggle — bright red so it's easy to spot */}
-          <button
-            onClick={() => setShowExpired(!showExpired)}
-            className={`ml-auto px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
-              showExpired
-                ? "bg-gradient-to-r from-red-500 to-orange-500 text-white border-red-400 shadow-lg shadow-red-500/30"
-                : "bg-slate-700/40 text-slate-400 border-slate-600/40 hover:text-red-300 hover:border-red-500/40"
-            }`}
-            data-testid="vac-toggle-expired"
-            title={lang === "hi" ? "समाप्त हो चुकी भर्तियाँ दिखाएँ" : "Show expired vacancies"}
-          >
-            <FaClock className="inline mr-1 text-[10px]" />
-            {lang === "hi"
-              ? `${showExpired ? "समाप्त छिपाएँ" : "समाप्त देखें"} (${stats?.expired || 0})`
-              : `${showExpired ? "Hide Expired" : "Show Expired"} (${stats?.expired || 0})`}
-          </button>
+              {QUALIFICATIONS.map(qOpt => (
+                <option key={qOpt.key} value={qOpt.key}>{lang === "hi" ? qOpt.hi : qOpt.en}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Attractive category chips — color-coded gradient pills with icon dots */}
+          <div className="relative flex gap-2 overflow-x-auto pb-1" data-testid="vacancies-cat-row">
+            {Object.entries(CAT_LABELS).map(([k, v]) => {
+              const cnt = k === "all" ? stats?.total : stats?.by_category?.find(c => c.category === k)?.count;
+              const isActive = category === k;
+              // Color tokens per category — distinct so they're scannable
+              const palette = {
+                all:        { on: "from-emerald-500 to-teal-500", dot: "bg-emerald-400" },
+                admit_card: { on: "from-sky-500 to-cyan-500",     dot: "bg-sky-400" },
+                result:     { on: "from-violet-500 to-fuchsia-500", dot: "bg-violet-400" },
+                ssc:        { on: "from-indigo-500 to-blue-500",  dot: "bg-indigo-400" },
+                railway:    { on: "from-orange-500 to-amber-500", dot: "bg-orange-400" },
+                bank:       { on: "from-emerald-500 to-green-500", dot: "bg-emerald-400" },
+                police:     { on: "from-blue-600 to-indigo-600",  dot: "bg-blue-400" },
+                upsc:       { on: "from-rose-500 to-pink-500",    dot: "bg-rose-400" },
+                defence:    { on: "from-slate-600 to-slate-700",  dot: "bg-slate-300" },
+                teaching:   { on: "from-purple-500 to-fuchsia-500", dot: "bg-purple-400" },
+                medical:    { on: "from-red-500 to-rose-500",     dot: "bg-red-400" },
+                psu:        { on: "from-yellow-500 to-orange-500", dot: "bg-yellow-400" },
+                haryana:    { on: "from-amber-500 to-yellow-500", dot: "bg-amber-400" },
+                other:      { on: "from-slate-500 to-slate-600",  dot: "bg-slate-400" },
+              }[k] || { on: "from-slate-500 to-slate-600", dot: "bg-slate-400" };
+              return (
+                <button key={k} onClick={() => setCategory(k)}
+                  className={`vac-cat-chip shrink-0 group inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
+                    isActive
+                      ? `is-active bg-gradient-to-r ${palette.on} text-white border-white/30 shadow-lg shadow-emerald-500/20 scale-105`
+                      : "hover:scale-[1.03]"
+                  }`}
+                  data-testid={`vac-cat-${k}`}>
+                  <span className={`vac-cat-dot w-1.5 h-1.5 rounded-full ${isActive ? "bg-white" : palette.dot} ${isActive ? "" : "group-hover:scale-125"} transition-transform`}></span>
+                  {lang === "hi" ? v.hi : v.en}
+                  {cnt !== undefined && (
+                    <span className={`vac-cat-count ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                      isActive ? "bg-white/25 text-white" : ""
+                    }`}>{cnt}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Application Mode Filter */}
+          <div className="vac-mode-sep relative flex items-center gap-2 flex-wrap pt-2 border-t border-white/5">
+            <span className="vac-mode-label text-[10px] uppercase tracking-widest text-slate-500 font-semibold mr-1">
+              {lang === "hi" ? "आवेदन प्रकार" : "Application Mode"}:
+            </span>
+            {[
+              { k: "all", hi: "सभी", en: "All" },
+              { k: "online", hi: "ऑनलाइन फॉर्म", en: "Online Form" },
+              { k: "offline", hi: "ऑफलाइन फॉर्म", en: "Offline Form" },
+              { k: "other", hi: "अन्य", en: "Other" },
+            ].map(m => (
+              <button
+                key={m.k}
+                onClick={() => setMode(m.k)}
+                className={`vac-mode-chip px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                  mode === m.k
+                    ? (m.k === "offline"
+                        ? "is-active-amber bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40"
+                        : "is-active-emerald bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30")
+                    : ""
+                }`}
+                data-testid={`vac-mode-${m.k}`}
+              >
+                {lang === "hi" ? m.hi : m.en} ({modeCounts[m.k] || 0})
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

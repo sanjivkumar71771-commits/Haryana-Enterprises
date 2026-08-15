@@ -58,6 +58,15 @@ A comprehensive web portal for **Haryana Enterprises** (Kagdana, Sirsa) — a **
 - Updated Footer tagline & links; updated Header nav
 - Testing agent report: `/app/test_reports/iteration_5.json` (100% pass)
 
+
+## Changelog — Feb 2026
+- **Feb 2026 — Vacancy filter + light-mode contrast fixes** (verified by testing_agent iter13, 100% pass)
+  - `GET /api/vacancies?category=haryana` now does broader $or match (title/organization/post_name/row_text) so all Haryana-relevant vacancies surface, not just those tagged `category=haryana`.
+  - `mode=other` filter now matches `application_mode` null OR missing (previously only null).
+  - `GET /api/vacancies/stats` now returns `by_mode.other` and a broader `haryana` count so UI counters are accurate (total == online + offline + other).
+  - Light-mode CSS: divider above "Application Mode" filter lightened to #e2e8f0; `text-amber-400` accent darkened to #78350f; added readable overrides for text-slate-600/700/800, text-white/60-80, text-yellow-400/500, text-red-400.
+
+
 ## Backlog (P1 → P2)
 - **P1** Emergent production deployment blocked (`await_phishing` filter) — pending support team whitelisting
 - **P1** Connect custom domain `hrdigitalservices.in` (blocked on deploy)

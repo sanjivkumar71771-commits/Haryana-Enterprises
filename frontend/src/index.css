@@ -664,7 +664,17 @@ body.light-theme .text-slate-500,
 body.light-theme .app-card-sub { color: #475569 !important; }
 body.light-theme .hero-title .accent,
 body.light-theme .text-amber-400,
-body.light-theme .text-amber-300 { color: #b45309 !important; }
+body.light-theme .text-amber-300 { color: #78350f !important; }
+body.light-theme .text-amber-500,
+body.light-theme .text-yellow-400,
+body.light-theme .text-yellow-500 { color: #92400e !important; }
+body.light-theme .text-slate-600,
+body.light-theme .text-slate-700,
+body.light-theme .text-slate-800,
+body.light-theme .text-white\/80,
+body.light-theme .text-white\/70,
+body.light-theme .text-white\/60 { color: #1e293b !important; }
+body.light-theme .text-red-400 { color: #b91c1c !important; }
 body.light-theme .text-emerald-400,
 body.light-theme .text-emerald-300,
 body.light-theme .link-mint,
@@ -707,6 +717,62 @@ body.light-theme .input {
   border-color: #cbd5e1 !important;
 }
 body.light-theme .input::placeholder { color: #94a3b8 !important; }
+
+/* ─────── Vacancies category & mode filter chips — theme-aware ─────── */
+/* Default (dark theme) */
+.vac-cat-chip:not(.is-active) {
+  background: rgba(255, 255, 255, 0.04);
+  color: rgb(203, 213, 225);
+  border-color: rgba(255, 255, 255, 0.10);
+}
+.vac-cat-chip:not(.is-active):hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.20);
+}
+.vac-cat-chip:not(.is-active) .vac-cat-count {
+  background: rgba(255, 255, 255, 0.10);
+  color: rgb(148, 163, 184);
+}
+.vac-mode-chip:not(.is-active-emerald):not(.is-active-amber) {
+  background: rgba(255, 255, 255, 0.03);
+  color: rgb(148, 163, 184);
+  border-color: rgba(255, 255, 255, 0.10);
+}
+.vac-mode-chip:not(.is-active-emerald):not(.is-active-amber):hover {
+  color: rgb(255, 255, 255);
+  border-color: rgba(255, 255, 255, 0.20);
+}
+
+/* Light theme overrides — solid background + dark text for readability */
+body.light-theme .vac-cat-chip:not(.is-active) {
+  background: #f1f5f9;
+  color: #334155;
+  border-color: #cbd5e1;
+}
+body.light-theme .vac-cat-chip:not(.is-active):hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+body.light-theme .vac-cat-chip:not(.is-active) .vac-cat-count {
+  background: #e2e8f0;
+  color: #475569;
+}
+body.light-theme .vac-mode-chip:not(.is-active-emerald):not(.is-active-amber) {
+  background: #f1f5f9;
+  color: #475569;
+  border-color: #cbd5e1;
+}
+body.light-theme .vac-mode-chip:not(.is-active-emerald):not(.is-active-amber):hover {
+  background: #e2e8f0;
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+/* Lighten the "black-looking" divider above Application Mode section in light mode */
+body.light-theme .vac-mode-sep {
+  border-top-color: #e2e8f0 !important;
+}
+body.light-theme .vac-mode-label { color: #475569 !important; }
 body.light-theme .a11y-btn {
   background: #ffffff !important;
   color: #334155 !important;
