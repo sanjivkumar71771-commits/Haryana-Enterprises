@@ -372,13 +372,14 @@ const VacancyDetail = () => {
       {/* Application fee full breakdown (if multi-tier) */}
       {v.structured?.application_fee?.includes(" · ") && (
         <div className="glass p-5 mb-6" data-testid="fee-breakdown">
-          <div className="section-eyebrow mb-2 flex items-center gap-2">
+          <div className="section-eyebrow mb-3 flex items-center gap-2">
             <FaRupeeSign className="text-emerald-400" />{lang === "hi" ? "श्रेणीवार शुल्क" : "Fee Breakdown"}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2" data-testid="fee-breakdown-list">
             {v.structured.application_fee.split(" · ").map((f, i) => (
-              <div key={i} className="px-3 py-2 rounded-lg bg-white/[0.03] border border-white/10 text-xs text-slate-200 flex items-start gap-2">
-                <span className="text-emerald-400 mt-0.5">•</span><span>{f}</span>
+              <div key={i} className="fee-row px-3 py-2 rounded-lg text-xs flex items-start gap-2">
+                <FaRupeeSign className="fee-row-icon mt-0.5 shrink-0" />
+                <span className="fee-row-text">{f}</span>
               </div>
             ))}
           </div>

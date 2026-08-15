@@ -706,6 +706,8 @@ body.light-theme .text-yellow-500 { color: #92400e !important; }
 body.light-theme .text-slate-600,
 body.light-theme .text-slate-700,
 body.light-theme .text-slate-800,
+body.light-theme .text-slate-200,
+body.light-theme .text-slate-100,
 body.light-theme .text-white\/80,
 body.light-theme .text-white\/70,
 body.light-theme .text-white\/60 { color: #1e293b !important; }
@@ -808,6 +810,26 @@ body.light-theme .vac-mode-sep {
   border-top-color: #e2e8f0 !important;
 }
 body.light-theme .vac-mode-label { color: #475569 !important; }
+
+/* ─────── Fee Breakdown (Vacancy Detail) — theme-aware ─────── */
+/* Ensures the "श्रेणीवार शुल्क" list is clearly readable in BOTH themes.
+   Prior version used bg-white/3 + text-slate-200 which was invisible in light mode. */
+.fee-row {
+  background: rgba(16, 185, 129, 0.06);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: #e2e8f0;
+  line-height: 1.35;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.fee-row-icon { color: #34d399; font-size: 10px; }
+.fee-row-text { flex: 1; }
+body.light-theme .fee-row {
+  background: #ecfdf5;
+  border-color: #6ee7b7;
+  color: #064e3b;
+}
+body.light-theme .fee-row-icon { color: #047857; }
 body.light-theme .a11y-btn {
   background: #ffffff !important;
   color: #334155 !important;
