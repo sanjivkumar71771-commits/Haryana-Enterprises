@@ -1,0 +1,34 @@
+{
+  "summary": "Verified all 4 new features (result scraper fix, state filter, save/bookmark, poster mobile polish) plus iter13 regressions. 9/10 backend tests pass; frontend flows all pass. One data-freshness issue: legacy DB entries carry admit_card category but new titles indicate 'Syllabus' etc — new scraper correctly rejects these, but old rows persist.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/vacancies?category=admit_card", "issue": "Stale docs from earlier scraper runs still have category='admit_card' but titles like 'MPSC Assistant Chemical Analyser Syllabus 2026' (no admit-card keyword). New scraper correctly filters these on ingestion, but existing docs are never re-categorized on refresh. Recommend a one-shot backfill (like state backfill) that re-runs _cat_from_title on every existing vacancy and downgrades those whose derived_cat != stored cat, OR expire/prune docs whose last fetched_at is > N days ago."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_vacancies_iter14.py",
+    "/app/test_reports/pytest/iter14.xml"
+  ],
+  "action_items": [
+    "Add a category backfill on startup (mirror of state backfill) that recomputes v['category'] = _cat_from_title(title) for docs whose stored admit_card/result category no longer matches the title (fixes leaking 'Syllabus' items into admit_card list)."
+  ],
+  "critical_code_review_comments": [
+    "scrapers.py fetch_freejobalert correctly rejects mis-categorized anchors on admit_card/result pages (derived_cat guard), but there is no cleanup path for previously ingested rows — result set will contain stale mis-categorized docs indefinitely.",
+    "state backfill on startup (server.py:1213) is idempotent and well-implemented; consider mirroring the same pattern for category to stay consistent.",
+    "server.py list_vacancies exposes ?state=all as a no-op — good UX default. by_state list is sorted desc as required.",
+    "ShareModal preview correctly uses CSS transform (scale) not zoom; verified inner scaled div has style.transform='scale(0.534)' on 375px viewport, no horizontal scroll (scrollWidth==clientWidth==375)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "90%", "frontend": "100%"},
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iter14 verified: result scraper returns 30 items with correct keywords; admit_card returns 30 items but ~1 stale 'Syllabus' doc leaks (data staleness, not code bug); state filter works (delhi=41 chips, punjab clean of himachal); bookmark saves/toggles/persists to localStorage he_saved_vacancies_v1; saved-only filter narrows list correctly; poster uses transform:scale on mobile with no horizontal scroll. Backend test file: /app/backend/tests/test_vacancies_iter14.py.",
+  "rca of the issue": "Backend test_admit_card_scraper_healthy failure: DB has legacy vacancy docs (e.g. 'MPSC Assistant Chemical Analyser Syllabus 2026') persisted with category='admit_card' from prior scraper versions. Current scraper (scrapers.py:345-348) correctly rejects such anchors during ingestion, but upsert-only refresh_vacancies_into_db doesn't retroactively downgrade already-stored docs. Mitigation: add a startup category-backfill loop similar to the existing state backfill in server.py:1213."
+}

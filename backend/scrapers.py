@@ -25,7 +25,7 @@ SOURCES = [
     ("sarkari", "https://www.freejobalert.com/sarkari-naukri/"),
     ("offline", "https://www.freejobalert.com/new-updates/"),
     ("admit_card", "https://www.freejobalert.com/admit-card/"),
-    ("result", "https://sarkariresult.freejobalert.com/"),
+    ("result", "https://www.freejobalert.com/exam-results/"),
 ]
 
 HEADERS = {
@@ -59,6 +59,51 @@ def _cat_from_title(title: str) -> str:
     if any(k in t for k in ["engineer", "psu", "ongc", "iocl", "hpcl", "gail", "bhel", "ntpc"]): return "psu"
     if any(k in t for k in ["nurse", "doctor", "medical", "aiims", "esic", "hospital"]): return "medical"
     return "other"
+
+
+# ── State detection (Indian states/UTs) ─────────────────────────────────────
+# Keyed to canonical state slugs (used by frontend dropdown).
+# Includes state PSC / SSC / recruitment-board abbreviations so we can detect
+# state-scoped jobs even when only the org name is available.
+_STATE_KEYWORDS = {
+    "haryana":          [r"\bharyana\b", r"\bhssc\b", r"\bhpsc\b", r"\bhkrn\b", r"\bhprb\b", r"\bhbse\b", r"\bpanchkula\b"],
+    "delhi":            [r"\bdelhi\b", r"\bdsssb\b", r"\bdpsc\b"],
+    "punjab":           [r"\bpunjab\b", r"\bpssb\b", r"\bpsssb\b", r"\bppsc\b", r"\bpstet\b"],
+    "rajasthan":        [r"\brajasthan\b", r"\brpsc\b", r"\brsmssb\b", r"\brssb\b"],
+    "uttar-pradesh":    [r"\buttar pradesh\b", r"\buppsc\b", r"\bupsssc\b", r"\bupssc\b"],
+    "madhya-pradesh":   [r"\bmadhya pradesh\b", r"\bmppsc\b", r"\bmpesb\b", r"\bmppeb\b"],
+    "himachal-pradesh": [r"\bhimachal\b", r"\bhppsc\b", r"\bhpssc\b", r"\bhpsssb\b"],
+    "uttarakhand":      [r"\buttarakhand\b", r"\bukpsc\b", r"\bukssc\b", r"\bukpcs\b"],
+    "bihar":            [r"\bbihar\b", r"\bbpsc\b", r"\bbssc\b"],
+    "jharkhand":        [r"\bjharkhand\b", r"\bjpsc\b", r"\bjssc\b"],
+    "gujarat":          [r"\bgujarat\b", r"\bgpsc\b", r"\bgsssb\b"],
+    "maharashtra":      [r"\bmaharashtra\b", r"\bmpsc\b", r"\bmahatransco\b"],
+    "karnataka":        [r"\bkarnataka\b", r"\bkpsc\b", r"\bkea\b"],
+    "tamil-nadu":       [r"\btamil nadu\b", r"\btnpsc\b", r"\btnusrb\b"],
+    "kerala":           [r"\bkerala\b"],
+    "andhra-pradesh":   [r"\bandhra pradesh\b", r"\bappsc\b"],
+    "telangana":        [r"\btelangana\b", r"\btspsc\b", r"\btsche\b"],
+    "west-bengal":      [r"\bwest bengal\b", r"\bwbpsc\b", r"\bwbssc\b"],
+    "odisha":           [r"\bodisha\b", r"\bopsc\b", r"\bossc\b"],
+    "chhattisgarh":     [r"\bchhattisgarh\b", r"\bcgpsc\b", r"\bcgvyapam\b"],
+    "assam":            [r"\bassam\b", r"\bapsc\b"],
+    "chandigarh":       [r"\bchandigarh\b"],
+    "jammu-kashmir":    [r"\bjammu\b", r"\bkashmir\b", r"\bjkssb\b", r"\bjkpsc\b"],
+}
+_STATE_COMPILED = {slug: re.compile("|".join(f"(?:{p})" for p in pats), re.I)
+                   for slug, pats in _STATE_KEYWORDS.items()}
+
+
+def state_from_text(*parts: str):
+    """Return canonical state slug when detected in any of the provided texts."""
+    blob = " ".join(p for p in parts if p)
+    if not blob:
+        return None
+    for slug, rx in _STATE_COMPILED.items():
+        if rx.search(blob):
+            return slug
+    return None
+
 
 
 # ── Last-date parsing & expired detection ────────────────────────────────────
@@ -290,6 +335,17 @@ async def fetch_freejobalert() -> List[Dict]:
                         seen_urls.add(href)
                         words = title.split()
                         org = " ".join(words[:2]) if len(words) >= 2 else words[0]
+                        # Trust the title to decide whether this anchor is really an
+                        # admit-card / result / other kind of listing. The exam-results
+                        # page includes many cross-links, so blindly tagging by src_type
+                        # would leak (e.g. admit-card links appearing as "result").
+                        derived_cat = _cat_from_title(title)
+                        cat = derived_cat if derived_cat in ("admit_card", "result") else src_type
+                        # Skip items that clearly do not match the current page's purpose
+                        if src_type == "result" and derived_cat != "result":
+                            continue
+                        if src_type == "admit_card" and derived_cat != "admit_card":
+                            continue
                         parsed = {
                             "title": title[:250],
                             "url": href,
@@ -299,7 +355,7 @@ async def fetch_freejobalert() -> List[Dict]:
                             "post_date_text": "",
                             "last_date_text": None,
                             "application_mode": _detect_application_mode(title, href),
-                            "category": src_type,
+                            "category": cat,
                             "row_text": title[:500],
                             "source": "freejobalert",
                             "source_type": src_type,
@@ -360,7 +416,16 @@ async def fetch_freejobalert() -> List[Dict]:
             if not existing.get(k) and v.get(k):
                 existing[k] = v[k]
     out = list(by_url.values())
-    return out[:800]
+    # Populate `state` field (canonical slug) for each vacancy
+    for v in out:
+        v["state"] = state_from_text(
+            v.get("title", ""),
+            v.get("organization", ""),
+            v.get("post_name", ""),
+            v.get("row_text", ""),
+        )
+    # Cap kept generous so late sources (result, admit-card) are never truncated.
+    return out[:1500]
 
 
 async def refresh_vacancies_into_db(db) -> int:

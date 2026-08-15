@@ -60,6 +60,11 @@ A comprehensive web portal for **Haryana Enterprises** (Kagdana, Sirsa) — a **
 
 
 ## Changelog — Feb 2026
+- **Feb 2026 — Result scraper + State filter + Save Vacancy + Poster mobile polish** (verified by testing_agent iter14, backend 100% after category-backfill patch, frontend 100%)
+  - Scrapers: switched `result` source URL to `www.freejobalert.com/exam-results/` and use `_cat_from_title` guard so admit_card/result anchors are only accepted when the title matches the page's purpose. Cap raised 800 → 1500. First-time `state` slug is populated for every parsed vacancy.
+  - Backend: `/api/vacancies` accepts `?state=<slug>`; `/api/vacancies/stats` returns `by_state`. Startup does an idempotent state + category backfill so historical rows are re-tagged after regex updates.
+  - Frontend Vacancies: added a State dropdown (data-testid `vacancies-state-filter`), a per-card state chip, a per-card bookmark toggle (data-testid `vacancy-save-{i}`, backed by localStorage `he_saved_vacancies_v1`), and a "Saved (N)" filter chip (data-testid `vacancies-saved-only-toggle`).
+  - Poster ShareModal: preview now uses CSS `transform: scale(...)` with a wrapper of the exact scaled dimensions (previously used `zoom`, which caused text offset when html-to-image captured on Safari/Firefox). Reduced modal padding on mobile so the poster fits without horizontal scroll.
 - **Feb 2026 — Vacancy filter + light-mode contrast fixes** (verified by testing_agent iter13, 100% pass)
   - `GET /api/vacancies?category=haryana` now does broader $or match (title/organization/post_name/row_text) so all Haryana-relevant vacancies surface, not just those tagged `category=haryana`.
   - `mode=other` filter now matches `application_mode` null OR missing (previously only null).
@@ -71,8 +76,6 @@ A comprehensive web portal for **Haryana Enterprises** (Kagdana, Sirsa) — a **
 - **P1** Emergent production deployment blocked (`await_phishing` filter) — pending support team whitelisting
 - **P1** Connect custom domain `hrdigitalservices.in` (blocked on deploy)
 - **P2** Real SMTP setup (SendGrid/Resend) for enquiry auto-response emails
-- **P2** State-wise filter on vacancies list
-- **P2** Save-for-later bookmarks on vacancies
 - **P2** Rate limit `POST /api/enquiry` (public unauth endpoint)
 - **P2** Split `backend/server.py` into routers (currently 1170+ lines)
 - **P3** Fix legacy `tests/test_code_review_fixes.py` failing tests (Mongo env mocking)

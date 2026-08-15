@@ -33,7 +33,7 @@ from auth import (
 )
 from emails import send_email, send_email_async, render_confirmation, render_reset
 from csc_services import CSC_CATEGORIES, all_service_ids, find_service
-from scrapers import fetch_freejobalert, refresh_vacancies_into_db, fetch_article_detail, backfill_application_mode, is_expired, parse_last_date
+from scrapers import fetch_freejobalert, refresh_vacancies_into_db, fetch_article_detail, backfill_application_mode, is_expired, parse_last_date, state_from_text, _cat_from_title
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 # MongoDB
@@ -581,6 +581,7 @@ async def list_vacancies(
     q: Optional[str] = None,
     qualification: Optional[str] = None,
     mode: Optional[str] = None,
+    state: Optional[str] = None,
     include_expired: bool = False,
     only_expired: bool = False,
     limit: int = 500,
@@ -599,6 +600,8 @@ async def list_vacancies(
         ]
     elif category and category != "all":
         query["category"] = category
+    if state and state != "all":
+        query["state"] = state
     if qualification and qualification != "all":
         query["qualification"] = {"$regex": qualification, "$options": "i"}
     if mode == "other":
@@ -639,7 +642,7 @@ async def vacancies_stats():
     # We compute expiry client-side on the "last_date_text" field, so aggregate manually
     all_items = await db.vacancies.find({}, {
         "category": 1, "application_mode": 1, "last_date_text": 1, "fetched_at": 1,
-        "title": 1, "organization": 1, "post_name": 1, "row_text": 1,
+        "title": 1, "organization": 1, "post_name": 1, "row_text": 1, "state": 1,
     }).to_list(2000)
 
     total_including_expired = len(all_items)
@@ -669,6 +672,14 @@ async def vacancies_stats():
     other_count = sum(1 for v in active_items if not v.get("application_mode"))
     by_mode = {"all": total, "online": online_count, "offline": offline_count, "other": other_count}
 
+    # State counts (canonical slug -> count)
+    by_state_counts: dict = {}
+    for v in active_items:
+        s = v.get("state")
+        if s:
+            by_state_counts[s] = by_state_counts.get(s, 0) + 1
+    by_state = [{"state": s, "count": n} for s, n in sorted(by_state_counts.items(), key=lambda x: -x[1])]
+
     latest = await db.vacancies.find({}, sort=[("fetched_at", -1)], limit=1).to_list(1)
     last_updated = latest[0]["fetched_at"].isoformat() if latest and latest[0].get("fetched_at") else None
     return {
@@ -677,6 +688,7 @@ async def vacancies_stats():
         "expired": expired_count,
         "by_category": by_cat,
         "by_mode": by_mode,
+        "by_state": by_state,
         "last_updated": last_updated,
     }
 
@@ -1086,6 +1098,7 @@ async def startup():
     await db.vacancies.create_index("url", unique=True)
     await db.vacancies.create_index("category")
     await db.vacancies.create_index("fetched_at")
+    await db.vacancies.create_index("state")
     await db.password_reset_tokens.create_index("token", unique=True)
     await db.password_reset_tokens.create_index("expires_at", expireAfterSeconds=0)
     await db.uploads.create_index("user_id")
@@ -1196,6 +1209,36 @@ async def startup():
              "title_en": "Government Scheme Reference Links (General Information Only)",
              "size": "Info · verify at pmsuryaghar.gov.in", "url": "https://pmsuryaghar.gov.in"},
         ])
+
+    # Backfill `state` field on ALL vacancy docs (idempotent — corrects false
+    # positives when the state regex is updated between releases).
+    try:
+        tagged = 0
+        async for d in db.vacancies.find(
+            {}, {"title": 1, "organization": 1, "post_name": 1, "row_text": 1, "state": 1, "category": 1}
+        ):
+            st = state_from_text(
+                d.get("title", ""), d.get("organization", ""),
+                d.get("post_name", ""), d.get("row_text", "")
+            )
+            updates = {}
+            if d.get("state") != st:
+                updates["state"] = st
+            # Category backfill — downgrade stale admit_card/result docs whose
+            # current title no longer matches those categories (e.g. legacy
+            # "Syllabus" articles that leaked in from earlier scraper versions).
+            stored_cat = d.get("category")
+            if stored_cat in ("admit_card", "result"):
+                derived_cat = _cat_from_title(d.get("title", ""))
+                if derived_cat != stored_cat:
+                    updates["category"] = derived_cat
+            if updates:
+                await db.vacancies.update_one({"_id": d["_id"]}, {"$set": updates})
+                tagged += 1
+        if tagged:
+            log.info(f"[vacancy-backfill] retagged {tagged} vacancies (state/category)")
+    except Exception as e:
+        log.warning(f"vacancy backfill failed: {e}")
 
 
 @app.on_event("shutdown")

@@ -5,7 +5,7 @@ import JobAlertSubscribe from "@/components/JobAlertSubscribe";
 import { useAuth } from "@/context/AuthContext";
 import { useI18n } from "@/context/I18nContext";
 import { toast } from "sonner";
-import { FaSearch, FaExternalLinkAlt, FaSync, FaCalendarAlt, FaBriefcase, FaClock, FaChevronRight, FaGraduationCap, FaBuilding, FaFileAlt, FaGlobe, FaShareAlt } from "react-icons/fa";
+import { FaSearch, FaExternalLinkAlt, FaSync, FaCalendarAlt, FaBriefcase, FaClock, FaChevronRight, FaGraduationCap, FaBuilding, FaFileAlt, FaGlobe, FaShareAlt, FaBookmark, FaRegBookmark, FaMapMarkerAlt } from "react-icons/fa";
 import ShareModal from "@/components/poster/ShareModal";
 import SEO from "@/components/SEO";
 
@@ -71,6 +71,43 @@ const QUALIFICATIONS = [
   { key: "post", hi: "पोस्ट ग्रेजुएट", en: "Post Graduate" },
 ];
 
+const STATES = [
+  { key: "all",              hi: "सभी राज्य",         en: "All States" },
+  { key: "haryana",          hi: "हरियाणा",          en: "Haryana" },
+  { key: "delhi",            hi: "दिल्ली",           en: "Delhi" },
+  { key: "punjab",           hi: "पंजाब",            en: "Punjab" },
+  { key: "rajasthan",        hi: "राजस्थान",         en: "Rajasthan" },
+  { key: "chandigarh",       hi: "चंडीगढ़",          en: "Chandigarh" },
+  { key: "himachal-pradesh", hi: "हिमाचल प्रदेश",     en: "Himachal Pradesh" },
+  { key: "uttarakhand",      hi: "उत्तराखंड",        en: "Uttarakhand" },
+  { key: "uttar-pradesh",    hi: "उत्तर प्रदेश",      en: "Uttar Pradesh" },
+  { key: "madhya-pradesh",   hi: "मध्य प्रदेश",       en: "Madhya Pradesh" },
+  { key: "bihar",            hi: "बिहार",            en: "Bihar" },
+  { key: "jharkhand",        hi: "झारखंड",          en: "Jharkhand" },
+  { key: "gujarat",          hi: "गुजरात",          en: "Gujarat" },
+  { key: "maharashtra",      hi: "महाराष्ट्र",       en: "Maharashtra" },
+  { key: "karnataka",        hi: "कर्नाटक",         en: "Karnataka" },
+  { key: "tamil-nadu",       hi: "तमिलनाडु",        en: "Tamil Nadu" },
+  { key: "kerala",           hi: "केरल",            en: "Kerala" },
+  { key: "andhra-pradesh",   hi: "आंध्र प्रदेश",      en: "Andhra Pradesh" },
+  { key: "telangana",        hi: "तेलंगाना",         en: "Telangana" },
+  { key: "west-bengal",      hi: "पश्चिम बंगाल",      en: "West Bengal" },
+  { key: "odisha",           hi: "ओडिशा",           en: "Odisha" },
+  { key: "chhattisgarh",     hi: "छत्तीसगढ़",        en: "Chhattisgarh" },
+  { key: "assam",            hi: "असम",             en: "Assam" },
+  { key: "jammu-kashmir",    hi: "जम्मू-कश्मीर",     en: "Jammu & Kashmir" },
+];
+
+// Local bookmarks (saved vacancies) — stored in localStorage under this key.
+const BOOKMARK_KEY = "he_saved_vacancies_v1";
+const readBookmarks = () => {
+  try { return JSON.parse(localStorage.getItem(BOOKMARK_KEY) || "[]"); }
+  catch { return []; }
+};
+const writeBookmarks = (ids) => {
+  try { localStorage.setItem(BOOKMARK_KEY, JSON.stringify(ids)); } catch {}
+};
+
 // Compute days remaining from a "dd-mm-yyyy" style string
 const daysRemaining = (txt) => {
   if (!txt) return null;
@@ -92,10 +129,25 @@ const Vacancies = () => {
   const [category, setCategory] = useState("all");
   const [qualification, setQualification] = useState("all");
   const [mode, setMode] = useState("all"); // all | online | offline
+  const [state, setState] = useState("all");
+  const [savedOnly, setSavedOnly] = useState(false);
+  const [bookmarks, setBookmarks] = useState(() => readBookmarks());
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [shareVac, setShareVac] = useState(null);
+
+  const toggleBookmark = (id) => {
+    setBookmarks(prev => {
+      const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+      writeBookmarks(next);
+      const isSaved = next.includes(id);
+      toast.success(isSaved
+        ? (lang === "hi" ? "भर्ती सहेजी गई" : "Vacancy saved")
+        : (lang === "hi" ? "बुकमार्क हटाया गया" : "Bookmark removed"));
+      return next;
+    });
+  };
 
   const load = async () => {
     setLoading(true);
@@ -104,6 +156,7 @@ const Vacancies = () => {
       if (category !== "all") params.set("category", category);
       if (qualification !== "all") params.set("qualification", qualification);
       if (mode !== "all") params.set("mode", mode);
+      if (state !== "all") params.set("state", state);
       if (q) params.set("q", q);
       const [r1, r2] = await Promise.all([
         api.get(`/vacancies?${params.toString()}`),
@@ -115,7 +168,7 @@ const Vacancies = () => {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [category, qualification, mode]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [category, qualification, mode, state]);
 
   const refresh = async () => {
     setRefreshing(true);
@@ -138,15 +191,19 @@ const Vacancies = () => {
       seen.add(key);
       list.push(it);
     }
-    // mode is filtered server-side, only apply text search client-side
-    if (!q) return list;
+    // mode is filtered server-side, only apply text search + saved-only client-side
+    let base = list;
+    if (savedOnly) {
+      base = base.filter(i => bookmarks.includes(i.id));
+    }
+    if (!q) return base;
     const s = q.toLowerCase();
-    return list.filter(i =>
+    return base.filter(i =>
       i.title?.toLowerCase().includes(s) ||
       i.organization?.toLowerCase().includes(s) ||
       i.post_name?.toLowerCase().includes(s)
     );
-  }, [items, q]);
+  }, [items, q, savedOnly, bookmarks]);
 
   // Mode counts come from DB stats (full dataset) — matches category counter above.
   const modeCounts = useMemo(() => {
@@ -210,6 +267,39 @@ const Vacancies = () => {
                 <option key={qOpt.key} value={qOpt.key}>{lang === "hi" ? qOpt.hi : qOpt.en}</option>
               ))}
             </select>
+            <select
+              value={state}
+              onChange={(e) => setState(e.target.value)}
+              className="input md:w-56"
+              data-testid="vacancies-state-filter"
+              aria-label={lang === "hi" ? "राज्य चुनें" : "Select State"}
+            >
+              {STATES.map(s => {
+                const cnt = s.key === "all"
+                  ? undefined
+                  : stats?.by_state?.find(x => x.state === s.key)?.count;
+                return (
+                  <option key={s.key} value={s.key}>
+                    {lang === "hi" ? s.hi : s.en}
+                    {typeof cnt === "number" ? ` (${cnt})` : ""}
+                  </option>
+                );
+              })}
+            </select>
+            <button
+              type="button"
+              onClick={() => setSavedOnly(v => !v)}
+              data-testid="vacancies-saved-only-toggle"
+              className={`vac-mode-chip px-3 py-2 rounded-full text-xs font-semibold border transition-all whitespace-nowrap ${
+                savedOnly
+                  ? "is-active-amber bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40"
+                  : ""
+              }`}
+              title={lang === "hi" ? "सहेजी गई भर्तियाँ दिखाएँ" : "Show saved vacancies"}
+            >
+              <FaBookmark className="inline mr-1 text-[10px]" />
+              {lang === "hi" ? "सहेजी गईं" : "Saved"} ({bookmarks.length})
+            </button>
           </div>
 
           {/* Attractive category chips — color-coded gradient pills with icon dots */}
@@ -328,9 +418,32 @@ const Vacancies = () => {
                   <FaShareAlt className="text-[10px]" />
                   <span className="tracking-wide">{lang === "hi" ? "पोस्टर" : "POSTER"}</span>
                 </button>
+                {/* Save / bookmark toggle — sits just under the share pill so it's still thumb-friendly */}
+                <button
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleBookmark(v.id); }}
+                  className={`absolute top-10 right-2 inline-flex items-center justify-center w-7 h-7 rounded-full z-10 transition-all border shadow ${
+                    bookmarks.includes(v.id)
+                      ? "bg-amber-500 text-white border-amber-300 hover:bg-amber-600"
+                      : "bg-white/90 text-slate-600 border-slate-200 hover:bg-amber-50 hover:text-amber-600"
+                  }`}
+                  data-testid={`vacancy-save-${i}`}
+                  aria-pressed={bookmarks.includes(v.id)}
+                  title={bookmarks.includes(v.id)
+                    ? (lang === "hi" ? "बुकमार्क हटाएँ" : "Remove bookmark")
+                    : (lang === "hi" ? "बाद के लिए सहेजें" : "Save for later")}
+                >
+                  {bookmarks.includes(v.id) ? <FaBookmark className="text-[11px]" /> : <FaRegBookmark className="text-[11px]" />}
+                </button>
                 <div className="flex items-start justify-between gap-2 mb-2 pr-10">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <span className="chip !text-[10px] uppercase">{CAT_LABELS[v.category]?.[lang] || v.category || "Job"}</span>
+                    {v.state && (
+                      <span className="chip !text-[10px] !bg-fuchsia-500/10 !text-fuchsia-700 !border-fuchsia-500/30" data-testid={`vacancy-state-${i}`}>
+                        <FaMapMarkerAlt className="inline mr-1 text-[9px]" />
+                        {STATES.find(s => s.key === v.state)?.[lang] || v.state}
+                      </span>
+                    )}
                     {v.organization && (
                       <span className="chip !text-[10px] !bg-sky-500/10 !text-sky-300 !border-sky-500/30">
                         <FaBuilding className="inline mr-1 text-[9px]" />{v.organization}

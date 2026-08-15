@@ -18,12 +18,12 @@ import { SITE_NAME, SITE_BASE_URL } from "./config";
 
 const overlay = {
   position: "fixed", inset: 0, zIndex: 50, display: "flex",
-  alignItems: "center", justifyContent: "center",
-  background: "rgba(0,0,0,0.6)", padding: 16, overflowY: "auto",
+  alignItems: "flex-start", justifyContent: "center",
+  background: "rgba(0,0,0,0.6)", padding: 12, overflowY: "auto",
 };
 const card = {
   position: "relative", width: "100%", maxWidth: 780,
-  borderRadius: 16, background: "#fff", boxShadow: "0 20px 50px rgba(0,0,0,0.3)", margin: "32px 0",
+  borderRadius: 16, background: "#fff", boxShadow: "0 20px 50px rgba(0,0,0,0.3)", margin: "16px 0",
   fontFamily: "'Poppins', sans-serif",
   color: "#0f172a",
 };
@@ -46,28 +46,38 @@ const ShareModal = ({ vacancy, onClose }) => {
   const [showPoster, setShowPoster] = useState(false);
   const [busy, setBusy] = useState(false);
   const [previewScale, setPreviewScale] = useState(1);
+  const [posterH, setPosterH] = useState(920);
   const posterRef = useRef(null);
+  const previewWrapRef = useRef(null);
 
   const displayName = (shopName && shopName.trim()) || SITE_NAME;
 
   // Fit the 620px-wide poster into whatever preview area we have.
-  // Constrain by both viewport width AND height so laptops (short screens)
-  // and phones (narrow screens) both see a comfortably sized preview.
+  // Uses CSS transform (not zoom) so it works consistently on Safari/Firefox
+  // and doesn't affect html-to-image's DOM measurements during capture.
   useEffect(() => {
     if (!showPoster) return;
     const compute = () => {
-      const availW = Math.min(window.innerWidth - 80, 720) - 32;
-      const availH = window.innerHeight - 240; // leave room for header/actions
-      const posterNaturalH = 900; // approximate; poster height is content-dependent
+      const isMobile = window.innerWidth < 640;
+      // Give the preview container some breathing room but on tiny phones use
+      // nearly the full screen width so the poster is still legible.
+      const cardPad = isMobile ? 24 : 48;        // px total horizontal card padding
+      const wrapPad = isMobile ? 12 : 32;        // px total horizontal preview padding
+      const availW = Math.max(220, window.innerWidth - cardPad - wrapPad - 8);
       const sW = availW / 620;
-      const sH = availH / posterNaturalH;
-      // Never upscale above 0.95 so we don't fill the whole modal on huge screens
-      const s = Math.min(0.95, Math.max(0.35, Math.min(sW, sH)));
+      const s = Math.min(1, Math.max(0.34, sW));
       setPreviewScale(Number(s.toFixed(3)));
+      // Measure the actual poster height so the wrapper reserves exact space
+      // (avoids clipping OR leaving a huge empty gap under the scaled poster).
+      if (posterRef.current) {
+        setPosterH(posterRef.current.scrollHeight || 920);
+      }
     };
     compute();
+    // re-measure once fonts settle so tall-line-height posters aren't clipped
+    const t = setTimeout(compute, 250);
     window.addEventListener("resize", compute);
-    return () => window.removeEventListener("resize", compute);
+    return () => { clearTimeout(t); window.removeEventListener("resize", compute); };
   }, [showPoster]);
 
   const handleLogo = (e) => {
@@ -140,7 +150,7 @@ const ShareModal = ({ vacancy, onClose }) => {
         </button>
 
         {!showPoster ? (
-          <div style={{ padding: 32 }}>
+          <div style={{ padding: "20px 16px" }}>
             <h3 style={{ fontSize: 24, fontWeight: 800, color: "#12307a", margin: 0 }}>Share This Vacancy</h3>
             <p style={{ marginTop: 6, fontSize: 14, color: "#64748b" }}>
               Enter your Shop / Center name — it appears on top of the poster. Leave blank to keep
@@ -183,25 +193,47 @@ const ShareModal = ({ vacancy, onClose }) => {
             </button>
           </div>
         ) : (
-          <div style={{ padding: 24 }}>
-            <div style={{ marginBottom: 16, display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <div style={{ padding: 16 }}>
+            <div style={{ marginBottom: 12, display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
               <h3 style={{ fontSize: 18, fontWeight: 800, color: "#12307a", margin: 0 }}>Your Poster is Ready</h3>
-              <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 <button onClick={() => setShowPoster(false)} style={{ ...btn("#fff"), color: "#334155", border: "1px solid #cbd5e1" }}>Edit</button>
-                <button onClick={handleDownload} disabled={busy} style={btn("#12307a")}>
+                <button onClick={handleDownload} disabled={busy} style={btn("#12307a")} data-testid="poster-download-btn">
                   {busy ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />} Download
                 </button>
-                <button onClick={handleWhatsApp} disabled={busy} style={btn("#25d366")}>
+                <button onClick={handleWhatsApp} disabled={busy} style={btn("#25d366")} data-testid="poster-whatsapp-btn">
                   <Share2 size={16} /> WhatsApp
                 </button>
               </div>
             </div>
-            <div style={{ display: "flex", justifyContent: "center", overflow: "hidden", borderRadius: 12, background: "#f1f5f9", padding: 16 }}>
-              {/* Using CSS `zoom` shrinks BOTH visual size and layout box so tall posters
-                  don't overflow the modal on mobile. html-to-image captures the ref which
-                  is inside this wrapper — but we pass width:620 to force natural render. */}
-              <div style={{ zoom: previewScale }}>
-                <Poster ref={posterRef} shopName={shopName} vacancy={vacancy} logo={logo} contact={contact} />
+            {/* Preview scroller — uses CSS transform (not zoom) so html-to-image
+                captures the poster at its natural 620px width without offset drift.
+                The wrapper reserves the scaled height so nothing is clipped. */}
+            <div
+              ref={previewWrapRef}
+              style={{
+                display: "flex", justifyContent: "center", alignItems: "flex-start",
+                borderRadius: 12, background: "#f1f5f9",
+                padding: 6, overflow: "hidden",
+              }}
+              data-testid="poster-preview-wrap"
+            >
+              <div
+                style={{
+                  width: 620 * previewScale,
+                  height: posterH * previewScale,
+                  position: "relative",
+                }}
+              >
+                <div
+                  style={{
+                    width: 620,
+                    transform: `scale(${previewScale})`,
+                    transformOrigin: "top left",
+                  }}
+                >
+                  <Poster ref={posterRef} shopName={shopName} vacancy={vacancy} logo={logo} contact={contact} />
+                </div>
               </div>
             </div>
           </div>
