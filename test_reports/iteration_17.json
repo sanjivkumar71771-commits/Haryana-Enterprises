@@ -1,0 +1,36 @@
+{
+  "summary": "CORS whitelist hardening verified. Backend now restricts allow-origins to the 4 whitelisted hosts (hrdigitalservices.in, www.hrdigitalservices.in, haryana-solar-app.emergent.host, rooftop-solar-jobs.preview.emergentagent.com). Ran 15 pytest cases covering OPTIONS preflight + actual GET/POST for both allowed and disallowed origins on /api/vacancies, /api/vacancies/stats, /api/enquiry. All 15 passed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_cors.py",
+    "/app/test_reports/pytest/iter17_cors.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py line 1078 uses os.environ.get('CORS_ORIGINS', '*').split(','). Default fallback of '*' combined with allow_credentials=True is a foot-gun: if CORS_ORIGINS ever gets unset, Starlette/FastAPI will refuse credentialed requests. Consider defaulting to an empty list [] or raising on missing config so misconfiguration fails loudly.",
+    "allow_methods=['*'] and allow_headers=['*'] combined with allow_credentials=True is permissive; consider tightening to explicit method/header lists if not required."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_cors.py (new file)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "n/a"},
+  "test_credentials": "not needed - CORS-only test",
+  "seed_data_creation": "One enquiry row created via /api/enquiry with prefix TEST_CORS (Pydantic model uses full_name/mobile/service fields). Safe to leave; can be filtered by email test_cors@example.com.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "CORS is locked down to 4 origins in /app/backend/.env. Test file /app/backend/tests/test_cors.py parametrizes allowed vs disallowed origins for preflight + real requests. If the whitelist changes, update the ALLOWED list in the test file. Enquiry endpoint expects fields: full_name, email, mobile, service, message.",
+  "verification_details": {
+    "allowed_origins_preflight": "OPTIONS /api/vacancies returned 200 with access-control-allow-origin echoing the request Origin for all 4 whitelisted hosts.",
+    "disallowed_origins_preflight": "OPTIONS /api/vacancies with evil.example.com / localhost:9999 / malicious.attacker.io — no matching ACAO header, no wildcard leaked. Browser would block.",
+    "no_origin_regression": "GET /api/vacancies without Origin header returns 200 with vacancy list (server-to-server unaffected).",
+    "stats_and_enquiry": "/api/vacancies/stats GET and /api/enquiry POST both succeed from an allowed origin and echo the correct ACAO."
+  }
+}
