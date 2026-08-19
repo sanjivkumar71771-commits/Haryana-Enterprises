@@ -11,7 +11,7 @@ import uuid
 import re
 import secrets
 from datetime import datetime, timezone, timedelta
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 
 import httpx
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, Body, UploadFile, File, Form
@@ -1067,6 +1067,108 @@ async def admin_delete_notice(notice_id: str, _=Depends(require_admin)):
         raise HTTPException(status_code=400, detail="Invalid id")
     await db.notices.delete_one({"_id": oid})
     return {"ok": True}
+
+
+# ─────────── Site Content (SEO + editable front-page copy) ───────────
+# Stored in the `site_content` collection as { key, value, updated_at } where
+# `value` is a free-form dict so the admin can attach any shape (SEO fields,
+# hero copy, contact info, etc.) without new migrations.
+
+class SiteContentIn(BaseModel):
+    """Public payload for PUT /api/site-content/{key}."""
+    value: Dict[str, Any] = Field(default_factory=dict)
+
+
+# Sensible defaults so a fresh install / production without seeded content still
+# renders the site correctly. Admin edits merge into these.
+DEFAULT_SITE_CONTENT: Dict[str, Dict[str, Any]] = {
+    "seo:home": {
+        "title": "Haryana Enterprises — Govt Approved Rooftop Solar Vendor & Job Vacancies",
+        "description": "Haryana Enterprises: govt-approved rooftop solar vendor. Also India ki latest sarkari naukri, admit card, result — Hindi/English, mobile-friendly.",
+        "keywords": "haryana enterprises, rooftop solar vendor, sarkari naukri, admit card, result, latest jobs, hindi jobs, offline form filing",
+    },
+    "seo:vacancies": {
+        "title": "Latest Sarkari Naukri 2026 — Haryana Enterprises",
+        "description": "Explore latest govt jobs, admit cards & results — filter by state, category and application mode. Updated every 6 hours.",
+        "keywords": "sarkari naukri, latest govt jobs 2026, admit card, exam result, haryana jobs, delhi jobs, punjab jobs",
+    },
+    "seo:services": {
+        "title": "Solar Services — Haryana Enterprises",
+        "description": "Govt-approved rooftop solar installation, financing guidance, and CSC-related services in Haryana and neighbouring states.",
+        "keywords": "rooftop solar installation, haryana solar vendor, solar financing, csc services",
+    },
+    "seo:about": {
+        "title": "About Us — Haryana Enterprises",
+        "description": "Learn about Haryana Enterprises — a private, govt-approved rooftop solar vendor helping households and businesses go solar.",
+        "keywords": "haryana enterprises about, solar vendor haryana",
+    },
+    "seo:contact": {
+        "title": "Contact — Haryana Enterprises",
+        "description": "Reach out for rooftop solar quotes, offline form assistance, and job-vacancy queries.",
+        "keywords": "haryana enterprises contact, rooftop solar quote",
+    },
+    "content:hero": {
+        "heading_hi": "हरियाणा एंटरप्राइजेज",
+        "heading_en": "Haryana Enterprises",
+        "tagline_hi": "सरकार-अनुमोदित रूफटॉप सोलर वेंडर — घर और व्यवसाय दोनों के लिए",
+        "tagline_en": "Govt-Approved Rooftop Solar Vendor — for Homes & Businesses",
+        "cta_hi": "मुफ्त कोटेशन पाएँ",
+        "cta_en": "Get a Free Quote",
+    },
+    "content:about": {
+        "text_hi": "Haryana Enterprises एक निजी, सरकार-अनुमोदित रूफटॉप सोलर वेंडर है। हम घरों और व्यवसायों के लिए सोलर पैनल इंस्टॉलेशन, फ़ाइनेंसिंग गाइडेंस और ऑफ़लाइन फ़ॉर्म भरने की सुविधा प्रदान करते हैं।",
+        "text_en": "Haryana Enterprises is a private, government-approved rooftop solar vendor. We provide solar installation, financing guidance and offline form-filing assistance for households and small businesses.",
+    },
+    "content:contact": {
+        "phone": "+91-9812345678",
+        "whatsapp": "+919812345678",
+        "email": "info@hrdigitalservices.in",
+        "address_hi": "मुख्य बाज़ार, हरियाणा",
+        "address_en": "Main Market, Haryana",
+    },
+}
+
+
+def _merged_content(key: str, stored):
+    """Merge admin-stored value over the default (partial edits stay safe)."""
+    base = dict(DEFAULT_SITE_CONTENT.get(key, {}))
+    if stored:
+        base.update(stored)
+    return base
+
+
+@api.get("/site-content")
+async def get_all_site_content():
+    """Public — returns every content key merged with defaults. Cached by client."""
+    rows = await db.site_content.find({}).to_list(200)
+    by_key = {r["key"]: r.get("value", {}) for r in rows}
+    out = {k: _merged_content(k, by_key.get(k)) for k in DEFAULT_SITE_CONTENT}
+    return {"content": out, "keys": list(DEFAULT_SITE_CONTENT.keys())}
+
+
+@api.get("/site-content/{key}")
+async def get_site_content(key: str):
+    if key not in DEFAULT_SITE_CONTENT:
+        raise HTTPException(status_code=404, detail="Unknown content key")
+    row = await db.site_content.find_one({"key": key})
+    return {"key": key, "value": _merged_content(key, (row or {}).get("value"))}
+
+
+@api.put("/site-content/{key}")
+async def put_site_content(key: str, payload: SiteContentIn, _=Depends(require_admin)):
+    if key not in DEFAULT_SITE_CONTENT:
+        raise HTTPException(status_code=400, detail="Unknown content key")
+    # Only accept known fields for this key so an admin typo doesn't inject garbage
+    allowed = set(DEFAULT_SITE_CONTENT[key].keys())
+    clean = {k: v for k, v in (payload.value or {}).items() if k in allowed}
+    now = datetime.now(timezone.utc)
+    await db.site_content.update_one(
+        {"key": key},
+        {"$set": {"value": clean, "updated_at": now}, "$setOnInsert": {"created_at": now}},
+        upsert=True,
+    )
+    return {"key": key, "value": _merged_content(key, clean), "updated_at": now.isoformat()}
+
 
 
 # ─────────── Include router + CORS ───────────

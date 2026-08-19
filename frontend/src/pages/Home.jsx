@@ -7,6 +7,7 @@ import Marquee from "react-fast-marquee";
 import SolarCalculator from "@/components/SolarCalculator";
 import SchemesInfo from "@/components/SchemesInfo";
 import SEO from "@/components/SEO";
+import { useContentKey } from "@/lib/siteContent";
 import {
   FaSolarPanel, FaMoneyBillWave, FaFileSignature, FaSearchLocation, FaTools,
   FaCheckCircle, FaChevronRight,
@@ -232,6 +233,7 @@ const VacanciesPreview = () => {
 
 const Home = () => {
   const { t, lang } = useI18n();
+  const hero = useContentKey("content:hero");
   const heroBg = "https://images.unsplash.com/photo-1655300256335-beef51a914fe?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTB8MHwxfHNlYXJjaHw0fHxyb29mdG9wJTIwc29sYXIlMjBwYW5lbHMlMjBob21lfGVufDB8fHx8MTc4NTM4NzQzNHww&ixlib=rb-4.1.0&q=85";
 
   const localBusinessJsonLd = {
@@ -282,10 +284,7 @@ const Home = () => {
   return (
     <div id="main-content" data-testid="home-page">
       <SEO
-        title=""
-        description={lang === "hi"
-          ? "कागदाना, सिरसा का सरकार अनुमोदित रूफटॉप सोलर वेंडर। मुफ्त परामर्श, साइट सर्वे व इंस्टॉलेशन सहायता। साथ में छात्रों के लिए ताज़ा सरकारी भर्तियाँ।"
-          : "Kagdana, Sirsa's Government-approved rooftop solar vendor. Free consultation, site survey & installation assistance. Plus latest sarkari job alerts for students."}
+        seoKey="seo:home"
         path="/"
         jsonLd={localBusinessJsonLd}
       />
@@ -301,17 +300,21 @@ const Home = () => {
             <span className="category-pill mb-4" data-testid="hero-category-pill">
               {lang === "hi" ? "सरकार अनुमोदित रूफटॉप सोलर वेंडर" : "Govt. Approved Rooftop Solar Vendor"}
             </span>
-            <h1 className="hero-title mb-4">
-              {lang === "hi" ? (<>
-                <span className="accent">रूफटॉप सोलर</span> के लिए एक विश्वसनीय भागीदार
-              </>) : (<>
-                A trusted partner for <span className="accent">rooftop solar</span>
-              </>)}
+            <h1 className="hero-title mb-4" data-testid="hero-heading">
+              {(lang === "hi" ? hero.heading_hi : hero.heading_en)
+                ? (lang === "hi" ? hero.heading_hi : hero.heading_en)
+                : (lang === "hi" ? (<>
+                    <span className="accent">रूफटॉप सोलर</span> के लिए एक विश्वसनीय भागीदार
+                  </>) : (<>
+                    A trusted partner for <span className="accent">rooftop solar</span>
+                  </>))}
             </h1>
-            <p className="text-lg text-slate-300/90 max-w-2xl mb-8">
-              {lang === "hi"
-                ? "रूफटॉप सोलर परामर्श, इंस्टॉलेशन और सोलर समाधानों के लिए पेशेवर सहायता — कागदाना, सिरसा से।"
-                : "Professional assistance for rooftop solar consultation, installation and solar solutions — from Kagdana, Sirsa."}
+            <p className="text-lg text-slate-300/90 max-w-2xl mb-8" data-testid="hero-tagline">
+              {(lang === "hi" ? hero.tagline_hi : hero.tagline_en)
+                ? (lang === "hi" ? hero.tagline_hi : hero.tagline_en)
+                : (lang === "hi"
+                    ? "रूफटॉप सोलर परामर्श, इंस्टॉलेशन और सोलर समाधानों के लिए पेशेवर सहायता — कागदाना, सिरसा से।"
+                    : "Professional assistance for rooftop solar consultation, installation and solar solutions — from Kagdana, Sirsa.")}
             </p>
 
             {/* CTA Buttons */}

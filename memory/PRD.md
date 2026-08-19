@@ -60,6 +60,15 @@ A comprehensive web portal for **Haryana Enterprises** (Kagdana, Sirsa) — a **
 
 
 ## Changelog — Feb 2026
+- **Feb 2026 — Admin panel Phase 1 (SEO + Front-page text editor)** (verified by testing_agent iter18, backend 100%, frontend 100%)
+  - Hidden admin panel at `/admin` — no public nav link. Login at `/admin/login` using existing JWT (admin@haryanaenterprises.com / Admin@123). Token stored in localStorage `he_admin_token_v1`.
+  - New collection `site_content { key, value, updated_at }` with 8 default keys: `seo:home|vacancies|services|about|contact` and `content:hero|about|contact`. Admin edits partially override defaults.
+  - Endpoints: `GET /api/site-content` (public), `GET /api/site-content/{key}` (public), `PUT /api/site-content/{key}` (admin only). Unknown fields silently dropped for safety.
+  - `SEO.jsx` now accepts `seoKey` prop and hydrates `<title>`, meta description, keywords from admin-managed content with hardcoded fallbacks.
+  - `Home.jsx` hero H1 + tagline now consume `content:hero` via `useContentKey`. `Services.jsx` and `Vacancies.jsx` use `seoKey`.
+  - Public Header/Footer hidden on `/admin/*` routes via `ChromeWrap`. Client-side cache in `lib/siteContent.js` — 1 request per full site session, busted after admin saves.
+- **Feb 2026 — CORS whitelist hardening** (verified by testing_agent iter17, 100% pass — 15/15 tests)
+  - `CORS_ORIGINS` restricted from `*` to 4 whitelisted hosts: hrdigitalservices.in, www.hrdigitalservices.in, haryana-solar-app.emergent.host, rooftop-solar-jobs.preview.emergentagent.com.
 - **Feb 2026 — Mobile State fix + Offline-only mode chip + Subtle scrollbar + Poster brand colors** (verified by testing_agent iter15 + iter16, 100% pass)
   - Vacancies: Application Mode row now shows a single toggle chip ("ऑफलाइन फॉर्म") — off means all modes, on means offline. Cleaner UX for the private vendor's core service.
   - Mobile State filter: `.input` font-size bumped to 16px ≤640px screens (prevents iOS focus-zoom) + explicit light-theme `select option` colors so the native picker is readable on iOS/Android.

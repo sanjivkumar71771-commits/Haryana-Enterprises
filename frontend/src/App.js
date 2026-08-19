@@ -24,6 +24,14 @@ import Gallery from "@/pages/Gallery";
 import Vacancies from "@/pages/Vacancies";
 import VacancyDetail from "@/pages/VacancyDetail";
 
+// Admin panel — hidden from public nav. Routes protected by AdminLayout which
+// checks for the admin JWT in localStorage and redirects to /admin/login.
+import AdminLayout from "@/pages/admin/AdminLayout";
+import AdminLogin from "@/pages/admin/AdminLogin";
+import AdminHome from "@/pages/admin/AdminHome";
+import AdminSEO from "@/pages/admin/AdminSEO";
+import AdminContent from "@/pages/admin/AdminContent";
+
 const ScrollToTop = () => {
   const { pathname } = useLocation();
   useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
@@ -54,6 +62,15 @@ function AppRouter() {
       <Route path="/register" element={<Navigate to="/enquiry" replace />} />
       <Route path="/dashboard" element={<Navigate to="/" replace />} />
       <Route path="/status" element={<Navigate to="/contact" replace />} />
+
+      {/* ─── Admin panel (hidden from public nav) ─── */}
+      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/admin" element={<AdminLayout />}>
+        <Route index element={<AdminHome />} />
+        <Route path="seo" element={<AdminSEO />} />
+        <Route path="content" element={<AdminContent />} />
+      </Route>
+
       <Route path="*" element={
         <div className="max-w-3xl mx-auto px-4 py-20 text-center">
           <h1 className="font-display text-6xl font-extrabold text-emerald-400">404</h1>
@@ -61,6 +78,18 @@ function AppRouter() {
         </div>
       } />
     </Routes>
+  );
+}
+
+function ChromeWrap({ children }) {
+  const { pathname } = useLocation();
+  const isAdmin = pathname.startsWith("/admin");
+  return (
+    <>
+      {!isAdmin && <Header />}
+      <main className="flex-1">{children}</main>
+      {!isAdmin && <Footer />}
+    </>
   );
 }
 
@@ -73,11 +102,9 @@ function AppInner() {
       <BrowserRouter>
         <ScrollToTop />
         <ProcessingLoader />
-        <Header />
-        <main className="flex-1">
+        <ChromeWrap>
           <AppRouter />
-        </main>
-        <Footer />
+        </ChromeWrap>
       </BrowserRouter>
       <Toaster richColors position="top-right" theme="dark" />
     </div>

@@ -216,13 +216,7 @@ const Vacancies = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-10" data-testid="vacancies-page">
-      <SEO
-        title={lang === "hi" ? "ताज़ा सरकारी भर्तियाँ · Job Alerts" : "Latest Government Vacancies · Job Alerts"}
-        description={lang === "hi"
-          ? "ताज़ा सरकारी भर्तियों की सूची — पात्रता, अंतिम तिथि, आवेदन शुल्क और वेतन। SSC, Railway, Bank, UPSC, Defence, Teaching. छात्रों के लिए मुफ्त Job Alerts।"
-          : "Latest government job vacancies — eligibility, last date, application fee & salary. SSC, Railway, Bank, UPSC, Defence, Teaching. Free job alerts for students."}
-        path="/vacancies"
-      />
+      <SEO seoKey="seo:vacancies" path="/vacancies" />
       <div className="flex items-start justify-between flex-wrap gap-3 mb-6">
         <div>
           <div className="section-eyebrow">Live Jobs Feed</div>
