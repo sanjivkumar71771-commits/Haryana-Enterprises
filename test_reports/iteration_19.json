@@ -1,0 +1,25 @@
+{
+  "summary": "Phase-2 admin Manual Job Posts CRUD tested end-to-end (backend + frontend). All 10 backend pytest cases pass. Full admin UI flow (create/edit/delete/confirm-modal), public-feed integration and Apply-Now block on VacancyDetail all work.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_admin_manual_vacancies.py",
+    "/app/test_reports/pytest/manual_vacancies.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py is 1484 lines — should be split into modules (auth, vacancies, admin, applications) for maintainability.",
+    "Manual vacancy PUT uses ManualVacancyIn which requires title>=3 chars; there is no partial-update option. Acceptable for this feature scope.",
+    "Public /api/vacancies filter for state='haryana' relies on state slug set by admin; no validation that supplied state is a known slug. Low priority."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_admin_manual_vacancies.py"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "admin@haryanaenterprises.com / Admin@123 (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "Test vacancies (TEST_Manual QA Post, UI QA Manual TEST, PUBLIC FEED MANUAL TEST) were created and deleted during test run; DB is clean.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Manual vacancy CRUD endpoints under /api/admin/vacancies use Bearer token from /api/auth/login access_token. Manual docs have source='manual' and url='internal://manual/{uuid}'. Guardrail on PUT/DELETE non-manual returns 400. Public feed and detail expose manual docs; VacancyDetail shows [data-testid=vacancy-manual-apply] block only when source==manual AND apply_url set. Scraper refresh preserves manual docs.",
+  "rca of the issue": "N/A — no bugs found."
+}

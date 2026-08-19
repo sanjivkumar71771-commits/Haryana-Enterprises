@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { FaSearch, FaEdit, FaChevronRight } from "react-icons/fa";
+import { FaSearch, FaEdit, FaChevronRight, FaBriefcase } from "react-icons/fa";
 
 const Card = ({ to, icon: Icon, title, desc, testid }) => (
   <Link
@@ -28,6 +28,13 @@ const AdminHome = () => {
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
         <Card
+          to="/admin/vacancies"
+          icon={FaBriefcase}
+          title="Manual Vacancies"
+          desc="Post your own job vacancies that appear alongside the auto-scraped feed. Auto-refresh never overwrites them."
+          testid="admin-card-vacancies"
+        />
+        <Card
           to="/admin/seo"
           icon={FaSearch}
           title="Site SEO"
@@ -43,7 +50,7 @@ const AdminHome = () => {
         />
       </div>
       <div className="mt-10 rounded-xl bg-amber-50 border border-amber-200 p-4 text-sm text-amber-900 max-w-3xl">
-        <strong>Coming soon:</strong> Manual job posts, announcement banners, offer posters and image uploads.
+        <strong>Coming soon:</strong> Announcement banners, offer posters and image uploads.
       </div>
     </div>
   );

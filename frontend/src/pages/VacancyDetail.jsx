@@ -386,6 +386,24 @@ const VacancyDetail = () => {
         </div>
       )}
 
+      {/* Manual "Apply Now" button — surfaced when admin provided an apply_url
+          (auto-scraped vacancies embed this inside important_links instead). */}
+      {v.apply_url && v.source === "manual" && (
+        <div className="glass p-5 mb-6" data-testid="vacancy-manual-apply">
+          <div className="section-eyebrow mb-3">{lang === "hi" ? "आवेदन करें" : "Apply Now"}</div>
+          <a
+            href={v.apply_url}
+            target="_blank"
+            rel="noreferrer nofollow"
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold shadow-lg shadow-emerald-500/30"
+            data-testid="vacancy-manual-apply-btn"
+          >
+            {lang === "hi" ? "अभी आवेदन करें" : "Apply Now"}
+            <FaExternalLinkAlt className="text-xs" />
+          </a>
+        </div>
+      )}
+
       {/* Important action links */}
       {Array.isArray(v.important_links) && v.important_links.length > 0 && (
         <div className="glass p-5 mb-6" data-testid="vacancy-links">

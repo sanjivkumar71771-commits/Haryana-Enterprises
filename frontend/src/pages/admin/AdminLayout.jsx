@@ -1,6 +1,6 @@
 import React from "react";
 import { Outlet, Link, NavLink, useNavigate, Navigate } from "react-router-dom";
-import { FaCog, FaSearch, FaEdit, FaSignOutAlt, FaHome, FaExternalLinkAlt } from "react-icons/fa";
+import { FaCog, FaSearch, FaEdit, FaSignOutAlt, FaHome, FaExternalLinkAlt, FaBriefcase } from "react-icons/fa";
 import { getAdminToken, clearAdminToken } from "./adminAuth";
 
 const AdminLayout = () => {
@@ -32,6 +32,9 @@ const AdminLayout = () => {
           </div>
         </Link>
         <nav className="flex md:flex-col gap-1 flex-1" data-testid="admin-nav">
+          <NavLink to="/admin/vacancies" className={linkClass} data-testid="admin-nav-vacancies">
+            <FaBriefcase /> Manual Vacancies
+          </NavLink>
           <NavLink to="/admin/seo" className={linkClass} data-testid="admin-nav-seo">
             <FaSearch /> Site SEO
           </NavLink>

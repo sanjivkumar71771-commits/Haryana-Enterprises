@@ -31,6 +31,7 @@ import AdminLogin from "@/pages/admin/AdminLogin";
 import AdminHome from "@/pages/admin/AdminHome";
 import AdminSEO from "@/pages/admin/AdminSEO";
 import AdminContent from "@/pages/admin/AdminContent";
+import AdminVacancies from "@/pages/admin/AdminVacancies";
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -69,6 +70,7 @@ function AppRouter() {
         <Route index element={<AdminHome />} />
         <Route path="seo" element={<AdminSEO />} />
         <Route path="content" element={<AdminContent />} />
+        <Route path="vacancies" element={<AdminVacancies />} />
       </Route>
 
       <Route path="*" element={

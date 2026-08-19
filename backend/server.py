@@ -717,7 +717,7 @@ async def get_vacancy_detail(vac_id: str):
     recently_attempted = prev_attempt and (now_utc - prev_attempt).total_seconds() < 3600
     needs_detail = (not has_content or stale) and not recently_attempted
 
-    if needs_detail and v.get("url"):
+    if needs_detail and v.get("url") and v.get("source") != "manual":
         detail = await fetch_article_detail(v["url"])
         if detail:
             await db.vacancies.update_one({"_id": oid}, {"$set": detail})
@@ -739,6 +739,107 @@ async def admin_refresh_vacancies(_=Depends(require_admin)):
         if new_docs:
             await _notify_subscribers_of_new_vacancies(new_docs)
     return {"ok": True, "new_added": added, "total": total}
+
+
+# ─────────── Admin: Manual Vacancy CRUD ───────────
+# Manually-authored vacancies live in the same `vacancies` collection but carry
+# `source: "manual"` and a synthetic `url: "internal://manual/{uuid}"` so they
+# never collide with (or get overwritten by) the FreeJobAlert scraper's upserts.
+
+class ManualVacancyIn(BaseModel):
+    title: str = Field(..., min_length=3, max_length=250)
+    organization: Optional[str] = Field(None, max_length=180)
+    post_name: Optional[str] = Field(None, max_length=250)
+    qualification: Optional[str] = Field(None, max_length=180)
+    category: Optional[str] = Field(None, max_length=40)     # e.g. bank, ssc, teaching, haryana
+    application_mode: Optional[str] = Field(None, pattern="^(online|offline)?$")
+    state: Optional[str] = Field(None, max_length=40)        # canonical slug (e.g. haryana, delhi)
+    last_date_text: Optional[str] = Field(None, max_length=80)
+    apply_url: Optional[str] = Field(None, max_length=500)   # external "Apply Now" link
+    description: Optional[str] = Field(None, max_length=20000)  # simple HTML / markdown-ish text
+
+
+def _manual_doc(payload: ManualVacancyIn, existing_url: Optional[str] = None) -> dict:
+    now = datetime.now(timezone.utc)
+    url = existing_url or f"internal://manual/{uuid.uuid4().hex}"
+    # Description is rendered by the frontend detail page via `content_html`; wrap
+    # plain text in <p> so the reader gets sensible spacing.
+    desc = (payload.description or "").strip()
+    if desc and "<" not in desc:
+        desc = "".join(f"<p>{line}</p>" for line in desc.split("\n") if line.strip())
+    doc = {
+        "url": url,
+        "source": "manual",
+        "source_type": "manual",
+        "title": payload.title.strip()[:250],
+        "organization": (payload.organization or "").strip()[:180] or None,
+        "post_name": (payload.post_name or payload.title).strip()[:250],
+        "qualification": (payload.qualification or "").strip()[:180] or None,
+        "category": (payload.category or "other").strip().lower()[:40],
+        "application_mode": payload.application_mode or None,
+        "state": (payload.state or "").strip().lower()[:40] or None,
+        "last_date_text": (payload.last_date_text or "").strip()[:80] or None,
+        "apply_url": (payload.apply_url or "").strip()[:500] or None,
+        "content_html": desc or None,
+        "detail_fetched_at": now,   # marks detail as "fresh" — no lazy scrape needed
+        "row_text": f"{payload.title} {payload.organization or ''}",
+        "fetched_at": now,
+        "structured": {
+            "post_name": (payload.post_name or payload.title).strip()[:250],
+            "qualification": (payload.qualification or "").strip()[:180] or None,
+            "last_date_text": (payload.last_date_text or "").strip()[:80] or None,
+            "description": desc or None,
+        },
+    }
+    return doc
+
+
+@api.get("/admin/vacancies")
+async def admin_list_manual_vacancies(_=Depends(require_admin)):
+    """List manual (admin-authored) vacancies only. Sorted newest first."""
+    rows = await db.vacancies.find({"source": "manual"}).sort("created_at", -1).to_list(500)
+    return [doc_public(r) for r in rows]
+
+
+@api.post("/admin/vacancies")
+async def admin_create_manual_vacancy(payload: ManualVacancyIn, _=Depends(require_admin)):
+    doc = _manual_doc(payload)
+    doc["created_at"] = datetime.now(timezone.utc)
+    res = await db.vacancies.insert_one(doc)
+    doc["_id"] = res.inserted_id
+    return doc_public(doc)
+
+
+@api.put("/admin/vacancies/{vac_id}")
+async def admin_update_manual_vacancy(vac_id: str, payload: ManualVacancyIn, _=Depends(require_admin)):
+    try:
+        oid = ObjectId(vac_id)
+    except Exception:
+        raise HTTPException(400, "Invalid id")
+    existing = await db.vacancies.find_one({"_id": oid})
+    if not existing:
+        raise HTTPException(404, "Vacancy not found")
+    if existing.get("source") != "manual":
+        raise HTTPException(400, "Only manual vacancies can be edited from the admin panel")
+    new_doc = _manual_doc(payload, existing_url=existing["url"])
+    await db.vacancies.update_one({"_id": oid}, {"$set": new_doc})
+    updated = await db.vacancies.find_one({"_id": oid})
+    return doc_public(updated)
+
+
+@api.delete("/admin/vacancies/{vac_id}")
+async def admin_delete_manual_vacancy(vac_id: str, _=Depends(require_admin)):
+    try:
+        oid = ObjectId(vac_id)
+    except Exception:
+        raise HTTPException(400, "Invalid id")
+    existing = await db.vacancies.find_one({"_id": oid}, {"source": 1})
+    if not existing:
+        raise HTTPException(404, "Vacancy not found")
+    if existing.get("source") != "manual":
+        raise HTTPException(400, "Only manual vacancies can be deleted from the admin panel")
+    await db.vacancies.delete_one({"_id": oid})
+    return {"ok": True, "id": vac_id}
 
 
 # ─────────── Vacancy Alert Subscriptions ───────────
@@ -1317,8 +1418,11 @@ async def startup():
     try:
         tagged = 0
         async for d in db.vacancies.find(
-            {}, {"title": 1, "organization": 1, "post_name": 1, "row_text": 1, "state": 1, "category": 1}
+            {}, {"title": 1, "organization": 1, "post_name": 1, "row_text": 1, "state": 1, "category": 1, "source": 1}
         ):
+            # Skip manual (admin-authored) rows — admin's state/category is authoritative
+            if d.get("source") == "manual":
+                continue
             st = state_from_text(
                 d.get("title", ""), d.get("organization", ""),
                 d.get("post_name", ""), d.get("row_text", "")

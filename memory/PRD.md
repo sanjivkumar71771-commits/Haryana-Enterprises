@@ -60,6 +60,12 @@ A comprehensive web portal for **Haryana Enterprises** (Kagdana, Sirsa) — a **
 
 
 ## Changelog — Feb 2026
+- **Feb 2026 — Admin panel Phase 2.1 (Manual Job Posts)** (verified by testing_agent iter19, backend 100%, frontend 100%)
+  - New CRUD endpoints under `/api/admin/vacancies` (list / POST / PUT / DELETE) protected by `require_admin`. Manual entries carry `source: "manual"` and a synthetic `url: "internal://manual/{uuid}"` so they never collide with the scraper.
+  - Scraper refresh + startup state/category backfill both skip `source=="manual"` — admin's edits are authoritative and preserved through auto-refresh.
+  - Detail endpoint skips external lazy-fetch for manual entries (their `content_html` is populated from admin description at creation, and `detail_fetched_at` is stamped).
+  - New admin UI at `/admin/vacancies` — list table with edit/delete row actions, slide-over Create/Edit form (title, org, category, mode, state, qualification, last date, apply URL, description). New sidebar link + AdminHome card.
+  - VacancyDetail shows a prominent "Apply Now" block (data-testid `vacancy-manual-apply`) when `apply_url` is set on a manual entry.
 - **Feb 2026 — Admin panel Phase 1 (SEO + Front-page text editor)** (verified by testing_agent iter18, backend 100%, frontend 100%)
   - Hidden admin panel at `/admin` — no public nav link. Login at `/admin/login` using existing JWT (admin@haryanaenterprises.com / Admin@123). Token stored in localStorage `he_admin_token_v1`.
   - New collection `site_content { key, value, updated_at }` with 8 default keys: `seo:home|vacancies|services|about|contact` and `content:hero|about|contact`. Admin edits partially override defaults.
