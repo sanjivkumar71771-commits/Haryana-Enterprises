@@ -60,6 +60,10 @@ A comprehensive web portal for **Haryana Enterprises** (Kagdana, Sirsa) — a **
 
 
 ## Changelog — Feb 2026
+- **Feb 2026 — Hide Admit Card + Result from default vacancy views** (verified by testing_agent iter20 + iter21, backend 100% 15/15)
+  - `list_vacancies` now adds `category $nin: ['admit_card','result']` unconditionally UNLESS the user explicitly asked for `admit_card` or `result`. Applies to default, `category=all`, haryana broader match and every state filter.
+  - `vacancies_stats` computes `total`, `by_mode`, and `by_state` from job_items (active minus admit_card + result) so top-line counts match the "All Vacancies" view. `by_category` still includes admit_card + result counts so the dedicated buttons render the right badges.
+  - Sanity check confirmed: `/admin`, `/admin/login`, `/admin/vacancies` all return 200 on preview and login flow works — any 404 the user sees is on the production host and needs a redeploy.
 - **Feb 2026 — Admin panel Phase 2.1 (Manual Job Posts)** (verified by testing_agent iter19, backend 100%, frontend 100%)
   - New CRUD endpoints under `/api/admin/vacancies` (list / POST / PUT / DELETE) protected by `require_admin`. Manual entries carry `source: "manual"` and a synthetic `url: "internal://manual/{uuid}"` so they never collide with the scraper.
   - Scraper refresh + startup state/category backfill both skip `source=="manual"` — admin's edits are authoritative and preserved through auto-refresh.

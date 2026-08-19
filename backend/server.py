@@ -600,6 +600,20 @@ async def list_vacancies(
         ]
     elif category and category != "all":
         query["category"] = category
+    # Hide admit_card / result listings unless the user explicitly selected
+    # those categories. This applies to the default "All" view AND every
+    # other category (including haryana / state filters) so admit-card items
+    # never leak into a normal job-browsing session.
+    if category not in ("admit_card", "result"):
+        existing = query.get("category")
+        if isinstance(existing, dict):
+            existing["$nin"] = list(set(existing.get("$nin", []) + ["admit_card", "result"]))
+        elif isinstance(existing, str):
+            # Concrete category chosen (e.g. bank/ssc) — no need to exclude,
+            # that category is already narrower than admit_card/result.
+            pass
+        else:
+            query["category"] = {"$nin": ["admit_card", "result"]}
     if state and state != "all":
         query["state"] = state
     if qualification and qualification != "all":
@@ -648,7 +662,11 @@ async def vacancies_stats():
     total_including_expired = len(all_items)
     active_items = [v for v in all_items if not is_expired(v.get("last_date_text"))]
     expired_count = total_including_expired - len(active_items)
-    total = len(active_items)  # "all" count excludes expired per requirement
+    # "All Vacancies" view excludes admit_card and result — they have their own
+    # dedicated buttons/pages. This keeps the top-level counts aligned with what
+    # a student sees when they land on /vacancies with no category selected.
+    job_items = [v for v in active_items if v.get("category") not in ("admit_card", "result")]
+    total = len(job_items)
 
     by_cat_counts: dict = {}
     for v in active_items:
@@ -667,14 +685,15 @@ async def vacancies_stats():
 
     by_cat = [{"category": c, "count": n} for c, n in by_cat_counts.items()]
 
-    online_count = sum(1 for v in active_items if v.get("application_mode") == "online")
-    offline_count = sum(1 for v in active_items if v.get("application_mode") == "offline")
-    other_count = sum(1 for v in active_items if not v.get("application_mode"))
+    online_count = sum(1 for v in job_items if v.get("application_mode") == "online")
+    offline_count = sum(1 for v in job_items if v.get("application_mode") == "offline")
+    other_count = sum(1 for v in job_items if not v.get("application_mode"))
     by_mode = {"all": total, "online": online_count, "offline": offline_count, "other": other_count}
 
-    # State counts (canonical slug -> count)
+    # State counts (canonical slug -> count) — exclude admit_card/result too so
+    # the state dropdown matches the "All Vacancies" view semantics.
     by_state_counts: dict = {}
-    for v in active_items:
+    for v in job_items:
         s = v.get("state")
         if s:
             by_state_counts[s] = by_state_counts.get(s, 0) + 1

@@ -1,0 +1,32 @@
+{
+  "summary": "Iter21 retest of the iter20 minor: verified list_vacancies now always adds $nin:['admit_card','result'] unless category is explicitly one of those. Ran the existing iter20 pytest (8/8 PASS — including the previously-lenient haryana test which just checks 200) AND authored a stricter iter21 pytest that asserts zero admit_card/result leakage in every requested view. All 15 tests pass, including the specifically-requested test_vacancy_category_haryana_no_admit_result. Fix confirmed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_vacancies_iter21.py",
+    "/app/backend/tests/test_vacancies_iter20.py",
+    "/app/test_reports/pytest/iter21.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Fix in server.py list_vacancies is correct: exclusion filter is now applied uniformly for default view, all-alias, state filters, and the haryana $or branch. Only bypassed when the user explicitly requests category='admit_card' or category='result'.",
+    "server.py is still 1494+ lines — recommend splitting into routers (vacancies, auth, admin, seo, content) for maintainability (carried over from iter20)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_vacancies_iter21.py (new — stricter regression covering haryana leak, state=delhi leak, explicit-category isolation, and stats.by_mode.all == stats.total invariant)"
+  ],
+  "success_rate": {"backend": "100% (15/15)", "frontend": "n/a (backend-only retest)"},
+  "test_credentials": "n/a for this retest (admin creds untouched)",
+  "seed_data_creation": "none",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "iter21 pytest is the authoritative regression for the admit_card/result exclusion behaviour. Rerun /app/backend/tests/test_vacancies_iter21.py alongside iter20 to guard against future regressions. Key invariants asserted: (a) category=haryana|delhi|<any-non-admit/result> never returns items where category in {admit_card,result}; (b) category=admit_card returns only admit_card; category=result returns only result; (c) stats.by_mode.all == stats.total (job-view total) and both by_category entries for admit_card/result are still present in stats.",
+  "rca of the issue": "Iter20 root cause: list_vacancies only applied the $nin exclusion inside the `else` branch (category None/'all'), so category='haryana' hit the $or dict-category branch without the guard, leaking admit_card/result. Fix: exclusion is now added unconditionally unless the requested category IS 'admit_card' or 'result'. Verified via test_vacancy_category_haryana_no_admit_result which returned 0 leaks (was 2 in iter20)."
+}

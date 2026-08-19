@@ -1,0 +1,35 @@
+{
+  "summary": "Iter20 verification of two fixes on preview: (1) backend filter to hide admit_card/result from default /vacancies view + stats totals, (2) admin panel sanity. Backend: 8/8 pytest passing. Frontend: default 'सभी' (All) view no longer shows any Admit Card or Result cards; clicking vac-cat-admit_card and vac-cat-result chips correctly surfaces those items; clicking All hides them again. Admin panel on preview is fully working — /admin/login returns HTTP 200 with data-testid='admin-login-page', /admin redirects unauth users to /admin/login, login with admin@haryanaenterprises.com / Admin@123 lands on /admin and shows all 3 sidebar items (admin-nav-vacancies, admin-nav-seo, admin-nav-content). Any 404 the user is seeing must therefore be on the PRODUCTION host (haryana-solar-app.emergent.host) and needs a redeploy from preview.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/vacancies?category=haryana", "issue": "Haryana filter does NOT exclude admit_card/result — returned 9 items with 2 admit_card entries. Review request explicitly listed this as a required guardrail. Fix: extend the `$nin: ['admit_card','result']` exclusion to the haryana branch as well (currently it is only applied when category is None or 'all')."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_vacancies_iter20.py",
+    "/app/test_reports/pytest/iter20.xml"
+  ],
+  "action_items": [
+    "Extend admit_card/result exclusion to category='haryana' branch of list_vacancies() in /app/backend/server.py (~line 594). Currently only the `if not category or category=='all'` branch adds the $nin filter; the haryana $or query does not, so haryana-tagged admit cards still leak into the Haryana category view.",
+    "Inform user: preview is 100% functional (admin routes, category filtering). The 404 they see is on the production URL (haryana-solar-app.emergent.host) — that domain needs a redeploy of the current preview build."
+  ],
+  "critical_code_review_comments": [
+    "server.py list_vacancies: the exclusion filter only runs in the else-branch of the category logic; the haryana branch bypasses it and leaks admit_card/result items into the Haryana view (business regression per spec).",
+    "server.py is 1494 lines — should be split into routers (vacancies, auth, admin, seo, content) for maintainability. Flag for next iteration."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_vacancies_iter20.py (new)"
+  ],
+  "success_rate": {"backend": "88% (7/8 requirement checks passing — haryana exclusion pending)", "frontend": "100%"},
+  "test_credentials": "admin@haryanaenterprises.com / Admin@123 (used and verified)",
+  "seed_data_creation": "none",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend + frontend admit_card/result exclusion works for default and category=all views. Only haryana filter still leaks admit_card items — main agent needs to add same $nin filter to haryana $or query. Admin routes verified on preview: no code work needed there. Preview URL: https://rooftop-solar-jobs.preview.emergentagent.com. iter20 pytest file covers the exclusion + admin login as regression."
+}
